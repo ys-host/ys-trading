@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YS Intraday Scan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#e8ecf4;--card:#fff;--card2:#f4f6fb;--b1:#d4daea;--b2:#b8c2d8;--b3:#8898b8;
+  --t1:#14172a;--t2:#323860;--t3:#5a6285;--t4:#8898b8;
+  --grn:#077840;--gnbg:#e2f6eb;--gnb:#70c898;--gnd:#055c30;
+  --red:#bc1c1c;--rdbg:#fce8e8;--rdb:#eeaaaa;
+  --amb:#9e5600;--abbg:#fff2dc;--abb:#e8b850;
+  --blu:#1238c0;--blbg:#e8f0ff;--blb:#88a8f8;
+  --pur:#5010b0;--pubg:#f0e8ff;--pub:#b890f0;
+  --gold:#885000;
+  --c1:#056030;--c2:#1238c0;--c3:#a05800;--c4:#5010b0;--c5:#a01858;
+  --sh:0 1px 4px rgba(0,0,0,.09);--sh2:0 4px 12px rgba(0,0,0,.10);
+  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);min-height:100vh;font-size:15px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--b3);border-radius:3px}
+.hdr{background:var(--card);border-bottom:2px solid var(--b1);padding:10px 18px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:300;flex-wrap:wrap;box-shadow:var(--sh)}
+.logo{font-size:17px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px}
+.pulse{width:10px;height:10px;border-radius:50%;background:var(--grn);animation:pls 2s infinite}
+@keyframes pls{0%{box-shadow:0 0 0 0 rgba(7,120,64,.4)}70%{box-shadow:0 0 0 8px rgba(7,120,64,0)}100%{box-shadow:0 0 0 0 rgba(7,120,64,0)}}
+.hmeta{font-size:12px;color:var(--t3);font-family:var(--mono)}
+.hsp{flex:1}
+.mkt{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px}
+.hbtn{padding:6px 14px;font-size:13px;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-family:var(--sans);transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.hbtn-bl{background:var(--blu);color:#fff}.hbtn-bl:hover{background:#0e2aa0}
+.hbtn-rd{background:var(--rdbg);color:var(--red);border:1.5px solid var(--rdb)}.hbtn-rd:hover{background:var(--rdb)}
+.hbtn-gn{background:var(--gnbg);color:var(--grn);border:1.5px solid var(--gnb)}.hbtn-gn:hover{background:var(--gnb)}
+.hbtn.ok{background:var(--gnbg);color:var(--grn);border:1.5px solid var(--gnb)}
+.hbtn-ai{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}.hbtn-ai:hover{filter:brightness(1.1)}
+.ticker{display:flex;gap:0;align-items:center;background:var(--card2);border:1px solid var(--b1);border-radius:8px;padding:0;flex-wrap:wrap;overflow:hidden}
+.ti{display:flex;align-items:center;gap:8px;font-size:13px;font-family:var(--mono);font-weight:600;padding:7px 14px;border-right:1px solid var(--b1)}
+.ti:last-of-type{border-right:none}
+.ti-l{color:var(--t3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.ti-v{color:var(--t1);font-size:14px;font-weight:700}
+.ti-c{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px}
+.ti-c.up{background:var(--gnbg);color:var(--grn);border:1px solid var(--gnb)}.ti-c.dn{background:var(--rdbg);color:var(--red);border:1px solid var(--rdb)}.ti-c.fl{background:var(--card2);color:var(--t3);border:1px solid var(--b1)}
+.tabs{display:flex;border-bottom:2px solid var(--b1);background:var(--card);overflow-x:auto}
+.tab{padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;color:var(--t3);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--t1);background:var(--card2)}.tab.on{color:var(--blu);border-bottom-color:var(--blu)}
+.tc{display:none}.tc.on{display:block}
+.main{padding:12px 18px;width:100%;max-width:100%}
+.stitle{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:16px 0 10px;display:flex;align-items:center;gap:8px}
+.stitle::after{content:'';flex:1;height:1.5px;background:var(--b1)}
+.card{background:var(--card);border:1px solid var(--b1);border-radius:12px;box-shadow:var(--sh)}
+.sg2{display:grid;grid-template-columns:290px repeat(auto-fill,minmax(155px,1fr));gap:10px;padding:14px 16px}
+.si{background:var(--card2);border:1px solid var(--b1);border-radius:9px;padding:11px 13px}
+.si-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:3px}
+.si-hint{font-size:11px;color:var(--t4);margin-top:4px;line-height:1.5}
+select.sc,input.sc{background:#fff;border:1.5px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:14px;font-weight:600;padding:6px 9px;width:100%;outline:none;cursor:pointer;margin-top:3px;transition:border-color .15s}
+select.sc:focus,input.sc:focus{border-color:var(--blu)}
+.gift-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.sig-pill{display:block;font-size:15px;font-weight:700;padding:7px 14px;border-radius:20px;margin-top:7px;text-align:center}
+.sp-bull{background:var(--gnbg);color:var(--grn);border:1.5px solid var(--gnb)}
+.sp-bear{background:var(--rdbg);color:var(--red);border:1.5px solid var(--rdb)}
+.sp-side{background:var(--abbg);color:var(--amb);border:1.5px solid var(--abb)}
+.sg{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media(max-width:1200px){.sg{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:750px){.sg{grid-template-columns:1fr 1fr}}
+.slot{background:var(--card);border:2px solid var(--b1);border-radius:11px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--sh)}
+.slot-h{padding:8px 11px;background:color-mix(in srgb,var(--sclr,#056030) 7%,#fff);border-bottom:2px solid color-mix(in srgb,var(--sclr,#056030) 22%,var(--b1));display:flex;align-items:center;gap:7px}
+.slot-n{font-size:13px;font-weight:700;color:var(--sclr,var(--grn));font-family:var(--mono)}
+.slot-ti{background:#fff;border:1px solid color-mix(in srgb,var(--sclr,#056030) 30%,var(--b2));border-radius:5px;font-size:12px;font-family:var(--mono);color:var(--t2);outline:none;font-weight:600;padding:3px 7px;width:90px}
+.slot-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:color-mix(in srgb,var(--sclr,#056030) 12%,#fff);color:var(--sclr,var(--grn));border:1px solid color-mix(in srgb,var(--sclr,#056030) 28%,var(--b1));white-space:nowrap;margin-left:auto}
+.slot-ta{width:100%;flex:1;background:var(--card2);border:none;padding:9px 11px;font-size:10px;font-family:var(--mono);color:var(--t2);resize:none;outline:none;min-height:88px;line-height:1.6}
+.slot-ta:focus{background:#eef2ff}.slot-ta::placeholder{color:var(--t4);font-size:10px}
+.slot-f{padding:5px 9px;border-top:1.5px solid var(--b1);display:flex;align-items:center;gap:4px;background:var(--card2)}
+.slot-cnt{font-size:11px;font-family:var(--mono);color:var(--t3);font-weight:500;flex:1}
+.pbtn{font-size:12px;font-weight:700;padding:4px 11px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mono);color:#fff}.pbtn:hover{filter:brightness(.88)}
+.rbtn{font-size:11px;font-weight:600;padding:3px 8px;border-radius:5px;border:1.5px solid var(--rdb);color:var(--red);background:var(--rdbg);cursor:pointer;font-family:var(--mono)}.rbtn:hover{background:var(--rdb)}
+.snotes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+@media(max-width:1200px){.snotes{grid-template-columns:repeat(3,1fr)}}
+.snote{background:var(--abbg);border:1px solid var(--abb);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--t2);line-height:1.5}
+.snote b{color:var(--amb);font-size:12px;display:block;margin-bottom:2px}
+.dr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.dr{grid-template-columns:1fr}}
+.dp{background:var(--card);border:1px solid var(--b1);border-radius:11px;overflow:hidden;box-shadow:var(--sh)}
+.dp-h{padding:10px 15px;border-bottom:1.5px solid var(--b1);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dp-t{font-size:14px;font-weight:700}.dp-w{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.dp-body{padding:11px 15px}
+.hint{font-size:12px;color:var(--t3);margin-bottom:8px;line-height:1.6}
+.nta{width:100%;background:var(--card2);border:1.5px solid var(--b2);border-radius:7px;padding:9px 11px;font-size:10px;font-family:var(--mono);color:var(--t2);resize:none;outline:none;height:76px;line-height:1.6}
+.nta:focus{border-color:var(--grn)}
+.dz{border:2px dashed var(--b2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card2);margin-bottom:7px;font-size:12px;color:var(--t3)}
+.dz:hover,.dz.over{border-color:var(--grn);background:var(--gnbg);color:var(--grn)}
+.dz input{display:none}
+.gdz{border:2px dashed var(--abb);border-radius:8px;padding:9px;text-align:center;cursor:pointer;background:var(--abbg);font-size:11px;color:var(--amb);margin-bottom:7px}
+.gdz:hover,.gdz.over{border-color:var(--amb);background:#ffe8b0}
+.gdz input{display:none}
+.gtabs{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.gtab{padding:5px 10px;font-size:12px;font-family:var(--mono);font-weight:600;border-radius:7px;border:1.5px solid var(--b2);background:var(--card2);color:var(--t3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.gtab.on{background:var(--abbg);color:var(--amb);border-color:var(--abb)}
+.gtab.has{border-color:var(--gnb);color:var(--grn);background:var(--gnbg)}
+.gtab.on.has{background:var(--abbg);color:var(--amb);border-color:var(--abb)}
+.gcnt{font-size:11px;background:var(--grn);color:#fff;border-radius:10px;padding:1px 7px;font-weight:700}
+.g-ti{background:var(--card2);border:1.5px solid var(--b2);border-radius:6px;font-size:12px;font-family:var(--mono);color:var(--t1);outline:none;font-weight:600;padding:3px 8px;min-width:86px}
+.g-ti:focus{border-color:var(--amb)}
+.gta{width:100%;background:var(--card2);border:1.5px solid var(--b2);border-radius:7px;padding:9px 11px;font-size:10px;font-family:var(--mono);color:var(--t2);resize:none;outline:none;height:78px;line-height:1.6}
+.gta:focus{border-color:var(--amb)}.gta::placeholder{color:var(--t4)}
+.g-ftr{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}
+.sr{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.ss{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:10px 15px;box-shadow:var(--sh)}
+.ss-l{font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.ss-v{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--t1)}
+.ss-v.g{color:var(--grn)}.ss-v.r{color:var(--red)}.ss-v.a{color:var(--amb)}.ss-v.b{color:var(--blu)}.ss-v.gold{color:var(--gold)}
+.mw{background:var(--card);border:1px solid var(--b1);border-radius:12px;overflow:hidden;box-shadow:var(--sh2)}
+.mh{padding:11px 16px;border-bottom:1.5px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.mt{font-size:15px;font-weight:700}
+.csel{background:var(--card2);border:1.5px solid var(--b2);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:12px;font-weight:600;padding:5px 9px;outline:none;cursor:pointer}
+.ts{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--card2);border-bottom:2px solid var(--b2)}
+th{padding:10px 11px;text-align:center;font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;border-right:1px solid var(--b1)}
+th:last-child{border-right:none}
+th:hover{color:var(--t1);background:var(--blbg)}
+th.asc::after{content:' ▲';color:var(--blu);font-size:9px}
+th.dsc::after{content:' ▼';color:var(--blu);font-size:9px}
+td{padding:9px 11px;border-bottom:1px solid var(--b1);text-align:center;color:var(--t2);white-space:nowrap;font-size:13px;border-right:1px solid var(--b1)}
+td:last-child{border-right:none}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#eef2ff}
+.tl{text-align:left!important}
+.tsym{display:flex;align-items:center;gap:5px;font-weight:700;font-size:14px;color:var(--t1)}
+.tname{font-size:12px;color:var(--t3);max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.g{color:var(--grn);font-weight:700}.r{color:var(--red);font-weight:700}.a{color:var(--amb);font-weight:700}.b{color:var(--blu);font-weight:700}.gold{color:var(--gold);font-weight:700}
+.cpbtn{width:20px;height:20px;background:var(--card2);border:1px solid var(--b2);color:var(--t3);cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;transition:all .12s;padding:0;flex-shrink:0}
+.cpbtn:hover{background:var(--blbg);border-color:var(--blb);color:var(--blu)}.cpbtn.ok{background:var(--gnbg);border-color:var(--gnb);color:var(--grn)}
+.fd{width:11px;height:11px;border-radius:50%;flex-shrink:0;display:inline-block}
+.fd.on{box-shadow:0 0 5px currentColor}.fd.off{background:#ccd4e8!important;box-shadow:none}
+.fb{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:700;font-size:13px;font-family:var(--mono)}
+.f5{background:#fff4d0;color:#885000;border:2.5px solid #f59e0b}.f4{background:var(--gnbg);color:var(--grn);border:2.5px solid var(--grn)}.f3{background:var(--blbg);color:var(--blu);border:2px solid var(--blu)}.f2{background:var(--pubg);color:var(--pur);border:1.5px solid var(--pub)}.f1{background:var(--card2);color:var(--t4);border:1.5px solid var(--b2)}
+.pw{background:var(--card);border:1px solid var(--b1);border-radius:12px;overflow:hidden;box-shadow:var(--sh2)}
+.ph{padding:13px 16px;border-bottom:1.5px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px;padding:12px}
+.pc{background:var(--card2);border:2px solid var(--b1);border-radius:12px;padding:13px 15px;transition:all .15s}
+.pc:hover{box-shadow:var(--sh2);transform:translateY(-1px)}
+.pc.r1{border-color:#f59e0b;background:#fffbf0}.pc.r2{border-color:var(--blu);background:var(--blbg)}.pc.r3{border-color:var(--grn);background:var(--gnbg)}
+.pc-t{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.pc-sym{font-size:18px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:6px}.pc-rk{font-size:13px;font-weight:700;font-family:var(--mono)}
+.pc-nm{font-size:12px;color:var(--t3);margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-sec{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;margin-bottom:9px}
+.pc-stats{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.ps{background:var(--card);border:1px solid var(--b1);border-radius:7px;padding:5px 8px}
+.ps-l{font-size:10px;color:var(--t3);font-weight:700;margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}.ps-v{font-size:14px;font-weight:700;font-family:var(--mono)}
+.pc-dots{display:flex;gap:4px;margin-top:4px}
+.sec-summary{display:flex;gap:8px;flex-wrap:wrap;padding:11px 14px;border-top:1.5px solid var(--b1);background:var(--card2);align-items:center}
+.sec-chip{padding:5px 12px;border-radius:20px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:var(--sh)}
+.sec-dot{width:10px;height:10px;border-radius:50%}
+/* AI */
+.ai-wrap{background:var(--card);border:1px solid var(--b1);border-radius:12px;overflow:hidden;box-shadow:var(--sh2)}
+.ai-hdr{padding:13px 18px;border-bottom:1.5px solid var(--b1);background:linear-gradient(135deg,#f0ebff,#e8f0ff)}
+.ai-ttl{font-size:15px;font-weight:700;background:linear-gradient(135deg,#4f46e5,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.ai-key-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ai-key-input{background:#fff;border:1.5px solid var(--blb);border-radius:7px;color:var(--t1);font-family:var(--mono);font-size:12px;padding:6px 10px;width:300px;outline:none}
+.ai-key-input:focus{border-color:#4f46e5}
+.ai-body{padding:16px 18px}
+.ai-brief{background:var(--card2);border:1px solid var(--b1);border-radius:10px;padding:14px 16px;min-height:120px;font-size:13px;line-height:1.9;color:var(--t2);white-space:pre-wrap}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid var(--b2);border-top-color:#4f46e5;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Rules */
+.gw{padding:4px 0}
+.gs{background:var(--card);border:1px solid var(--b1);border-radius:12px;margin-bottom:12px;overflow:hidden;box-shadow:var(--sh)}
+.gs-hdr{padding:12px 16px;border-bottom:1.5px solid var(--b1);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.gs-body{padding:12px 16px}
+.rrow{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--b1);font-size:13px;line-height:1.6}
+.rrow:last-child{border-bottom:none}
+.rcheck{width:22px;height:22px;border-radius:5px;border:2px solid var(--b2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;background:var(--card);margin-top:2px;color:transparent}
+.rcheck:hover{border-color:var(--grn);background:var(--gnbg)}.rcheck.ck{background:var(--grn);border-color:var(--gnd);color:#fff}.rcheck.ck::after{content:"✓"}
+.rtxt{flex:1;color:var(--t2)}.rtxt.ck{color:var(--t4);text-decoration:line-through}.rtxt b{color:var(--t1);font-weight:700}
+.rtag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;margin-left:6px;vertical-align:middle}
+.tag-do{background:var(--gnbg);color:var(--grn);border:1px solid var(--gnb)}.tag-dont{background:var(--rdbg);color:var(--red);border:1px solid var(--rdb)}.tag-c{background:var(--abbg);color:var(--amb);border:1px solid var(--abb)}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;display:none}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border-radius:14px;padding:26px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#4f46e5,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal p,.modal ol li{font-size:13px;color:var(--t2);line-height:1.8}
+.modal ol{padding-left:20px;margin-bottom:14px}
+.modal input{width:100%;background:var(--card2);border:1.5px solid var(--blb);border-radius:8px;color:var(--t1);font-family:var(--mono);font-size:13px;padding:8px 11px;outline:none;margin:10px 0}
+.modal input:focus{border-color:#4f46e5}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.sbar{font-size:12px;color:var(--t3);padding:7px 18px;background:var(--card);border-top:1.5px solid var(--b1);position:sticky;bottom:0;font-family:var(--mono);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD OVERLAY — change the password below -->
+<div id="pwOverlay" style="position:fixed;inset:0;background:#1a1d2e;z-index:9999;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif">
+  <div style="background:#fff;border-radius:16px;padding:36px 40px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center">
+    <div style="font-size:28px;margin-bottom:6px">📊</div>
+    <div style="font-size:20px;font-weight:700;color:#14172a;margin-bottom:4px">YS Intraday Scan</div>
+    <div style="font-size:13px;color:#6b7490;margin-bottom:24px">Enter password to continue</div>
+    <input type="password" id="pwInput" placeholder="Password"
+      style="width:100%;padding:11px 14px;font-size:15px;border:2px solid #d4daea;border-radius:9px;outline:none;margin-bottom:10px;font-family:inherit;text-align:center;letter-spacing:2px"
+      onkeydown="if(event.key==='Enter') checkPw()"
+      autofocus/>
+    <div id="pwErr" style="font-size:12px;color:#bc1c1c;margin-bottom:10px;height:16px"></div>
+    <button onclick="checkPw()"
+      style="width:100%;padding:12px;font-size:15px;font-weight:700;background:#1238c0;color:#fff;border:none;border-radius:9px;cursor:pointer;font-family:inherit">
+      Enter Dashboard
+    </button>
+    <div style="font-size:11px;color:#8898b8;margin-top:16px">YS Intraday Scan · Private Access</div>
+  </div>
+</div>
+<script>
+// ── CHANGE YOUR PASSWORD HERE ────────────────────────────────────────────────
+const DASHBOARD_PASSWORD = 'ys@trading2026';
+// ────────────────────────────────────────────────────────────────────────────
+(function(){
+  // Check if already authenticated in this session
+  if(sessionStorage.getItem('ys_auth')==='1'){
+    document.getElementById('pwOverlay').style.display='none';
+  }
+})();
+function checkPw(){
+  const v=document.getElementById('pwInput').value;
+  if(v===DASHBOARD_PASSWORD){
+    sessionStorage.setItem('ys_auth','1');
+    const ov=document.getElementById('pwOverlay');
+    ov.style.transition='opacity .3s';ov.style.opacity='0';
+    setTimeout(()=>ov.style.display='none',300);
+  } else {
+    const err=document.getElementById('pwErr');
+    err.textContent='Incorrect password. Try again.';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+    setTimeout(()=>err.textContent='',2500);
+  }
+}
+</script>
+
+<div class="modal-bg" id="apiModal">
+  <div class="modal">
+    <h2>Get Free Gemini API Key</h2>
+    <p>100% free — no credit card, no payment ever.</p>
+    <ol>
+      <li>Open <b>aistudio.google.com</b> in your browser</li>
+      <li>Sign in with your Google account</li>
+      <li>Click <b>"Get API Key"</b> → <b>"Create API key"</b></li>
+      <li>Copy the key → paste below</li>
+    </ol>
+    <input type="text" id="apiKeyInput" placeholder="AIzaSy... paste here"/>
+    <div class="modal-btns">
+      <button onclick="closeModal()" style="padding:8px 16px;font-size:13px;font-weight:600;background:var(--card2);border:1.5px solid var(--b2);border-radius:7px;cursor:pointer">Cancel</button>
+      <button onclick="saveApiKey()" style="padding:8px 16px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:7px;cursor:pointer">Save &amp; Activate</button>
+    </div>
+  </div>
+</div>
+
+<div class="hdr">
+  <div class="logo"><div class="pulse"></div>YS Intraday Scan</div>
+  <div class="hmeta" id="liveTime">--:--:--</div>
+  <div class="hmeta" id="dateStr"></div>
+  <span class="mkt" id="mktBadge" style="background:var(--gnbg);color:var(--grn);border:1.5px solid var(--gnb)">● Open</span>
+  <div class="ticker">
+    <div class="ti"><span class="ti-l">NIFTY</span><span class="ti-v" id="tn50">—</span><span class="ti-c fl" id="tc50">—</span></div>
+    <div class="ti"><span class="ti-l">BANK</span><span class="ti-v" id="tnbk">—</span><span class="ti-c fl" id="tcbk">—</span></div>
+    <div class="ti"><span class="ti-l">GIFT NIFTY</span><span class="ti-v" id="tngift">—</span><span class="ti-c fl" id="tcgift">—</span></div>
+    <div class="ti"><span class="ti-l">INDIA VIX</span><span class="ti-v" id="tnvix">—</span><span class="ti-c fl" id="tcvix">—</span></div>
+    <span style="font-size:11px;color:var(--t3);font-family:var(--mono);padding:7px 12px;white-space:nowrap" id="tickTime">fetching...</span>
+  </div>
+  <div class="hsp"></div>
+  <button class="hbtn hbtn-ai" onclick="checkAndRunAI()">✦ AI Brief</button>
+  <button class="hbtn hbtn-gn" onclick="exportCSV()">⬇ CSV</button>
+  <button class="hbtn hbtn-rd" onclick="resetAll()">↺ Reset Day</button>
+  <button class="hbtn hbtn-bl" id="rebuildBtn" onclick="rebuild()">▶ Build</button>
+</div>
+
+<div class="main">
+<div class="tabs">
+  <div class="tab on" onclick="showTab('dash',this)">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('matrix',this)">📋 Frequency Matrix</div>
+  <div class="tab" onclick="showTab('ai',this)">✦ AI Trade Brief</div>
+  <div class="tab" onclick="showTab('guide',this)">📖 Trading Rules</div>
+</div>
+
+<!-- ══ DASHBOARD ══════════════════════════════════════ -->
+<div class="tc on" id="tab-dash">
+<div style="display:flex;justify-content:flex-end;padding:7px 0"><button class="rbtn" onclick="resetTabDash()">↺ Reset Tab</button></div>
+
+<div class="stitle"><span>Market Sentiment — Set Before 9:15 AM Daily</span></div>
+<div class="card">
+<div class="sg2">
+  <div class="si" style="border-color:var(--blb);background:var(--blbg)">
+    <div class="si-lbl" style="color:var(--blu)">GIFT Nifty 50 Index Futures</div>
+    <div class="gift-row">
+      <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px;font-weight:600">Direction</div>
+        <select class="sc" id="giftDir" onchange="onSent()" style="border-color:var(--blb)">
+          <option value="bull">Bullish ▲</option><option value="bear">Bearish ▼</option><option value="flat">Flat ↔</option>
+        </select></div>
+      <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px;font-weight:600">Gap %</div>
+        <input class="sc" id="giftChg" type="number" value="0.49" step="0.01" style="border-color:var(--blb)" oninput="onSent()"/></div>
+    </div>
+    <div class="si-hint" style="color:var(--blu)">Auto-updated from live data (NIFTY1! continuous contract). 0.3–0.8% = ideal for longs. Above 1.5% = caution. Negative = avoid longs.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Nifty Direction</div>
+    <select class="sc" id="s_nifty" onchange="onSent()"><option>Bullish ▲</option><option>Bearish ▼</option><option>Sideways ↔</option></select>
+    <div class="si-hint">Long or short bias. Bearish = short only, min % auto-raises to 3.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Market Mood</div>
+    <select class="sc" id="s_mood" onchange="onSent()"><option>Trending</option><option>Choppy</option><option>Range-bound</option><option>Panic</option></select>
+    <div class="si-hint">Choppy/Panic = raise min frequency to 3–4. Only strongest setups.</div>
+  </div>
+  <div class="si"><div class="si-lbl">VIX Level</div>
+    <select class="sc" id="s_vix" onchange="onSent()"><option>Low (&lt;15)</option><option>Medium (15–20)</option><option>High (&gt;20)</option></select>
+    <div class="si-hint">High VIX = reduce size 50%. Stops hit more. Widen SL.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Session Phase</div>
+    <select class="sc" id="s_phase" onchange="onSent()"><option>9:15–9:30 Open</option><option>9:30–10:30 Early</option><option>10:30–11:30 Mid</option></select>
+    <div class="si-hint">Open = observe only. Early = best entries. Mid = trail only.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Min % Change</div>
+    <input class="sc" id="f_chg" type="number" value="2.0" step="0.5" min="0" oninput="rebuild()"/>
+    <div class="si-hint">Raise to 3+ in choppy/panic market.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Min Volume (L)</div>
+    <input class="sc" id="f_vol" type="number" value="0.5" step="0.5" min="0" oninput="rebuild()"/>
+    <div class="si-hint">0.5L = 50,000 shares. Liquidity = clean entry/exit.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Min Frequency</div>
+    <input class="sc" id="f_freq" type="number" value="2" step="1" min="1" max="5" oninput="rebuild()"/>
+    <div class="si-hint">Raise to 3–4 for high-confidence signals only.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Min Delivery %</div>
+    <input class="sc" id="f_del" type="number" value="0" step="5" min="0" oninput="rebuild()"/>
+    <div class="si-hint">40%+ = institutional. 0 = show all.</div>
+  </div>
+  <div class="si"><div class="si-lbl">Today's Signal</div>
+    <div id="sentScore" class="sig-pill sp-bull">Bullish · High</div>
+  </div>
+</div>
+</div>
+
+<div class="stitle">
+  <span>Chartink Scan Slots</span>
+  <div style="display:flex;gap:6px;margin-left:8px">
+    <button onclick="parseAllSlots()" style="padding:3px 11px;font-size:12px;font-weight:700;background:var(--blbg);color:var(--blu);border:1.5px solid var(--blb);border-radius:6px;cursor:pointer">Parse All</button>
+    <button onclick="resetAllScans()" style="padding:3px 11px;font-size:12px;font-weight:700;background:var(--rdbg);color:var(--red);border:1.5px solid var(--rdb);border-radius:6px;cursor:pointer">Reset All</button>
+  </div>
+</div>
+<div class="snotes">
+  <div class="snote"><b>Scan 1 — 9:15 AM</b>First candle closed. Mark ORB levels. Observe only — DO NOT enter.</div>
+  <div class="snote"><b>Scan 2 — 9:30 AM</b>First entry window. Wait for pullback to key level, not breakout candle.</div>
+  <div class="snote"><b>Scan 3 — 10:00 AM</b>Best entry window. High-freq = real move. Enter on 5m rejection at 15m zone.</div>
+  <div class="snote"><b>Scan 4 — 10:30 AM</b>Confirmation scan. Still in list = institutional. Trail stop only.</div>
+  <div class="snote"><b>Scan 5 — 11:00 AM</b>Final scan. Hard exit all by 11:15 AM. No new entries.</div>
+</div>
+<div class="sg" id="scansGrid"></div>
+
+<div class="dr" style="margin-top:14px">
+  <div class="dp">
+    <div class="dp-h">
+      <span class="dp-t" style="color:var(--grn)">NSE Bhavcopy — Delivery %</span>
+      <span class="dp-w" style="background:var(--abbg);color:var(--amb);border:1px solid var(--abb)">⚠ Previous day · 7 AM static</span>
+      <div style="flex:1"></div><button class="rbtn" onclick="resetNSE()">Reset</button>
+    </div>
+    <div class="dp-body">
+      <div class="hint"><b>Download:</b> nseindia.com → Market Data → Reports → Bhavcopy with Deliverable Positions → CSV → drag &amp; drop below or paste text.</div>
+      <div class="dz" id="nseDZ" onclick="document.getElementById('nseFile').click()" ondragover="ev=>{ev.preventDefault();this.classList.add('over')}" ondragleave="this.classList.remove('over')" ondrop="dropFile(event,'nse')">
+        <input type="file" id="nseFile" accept=".csv" onchange="loadFile(event,'nse')"/>
+        📂 Drag &amp; drop NSE bhavcopy CSV — or click to browse
+      </div>
+      <textarea class="nta" id="nseTA" placeholder="Or paste bhavcopy CSV text here..."></textarea>
+      <div style="display:flex;align-items:center;gap:9px;margin-top:8px">
+        <button onclick="parseNSE()" style="padding:6px 14px;font-size:13px;font-weight:700;background:var(--gnd);color:#fff;border:none;border-radius:7px;cursor:pointer">Parse NSE</button>
+        <span id="nseStatus" style="font-size:12px;color:var(--grn);font-family:var(--mono);font-weight:600">✓ 2432 EQ stocks pre-loaded (20-Mar-2026)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dp">
+    <div class="dp-h">
+      <span class="dp-t" style="color:var(--amb)">Live Top Gainers — Every 30 min after 9:30</span>
+      <span class="dp-w" style="background:var(--rdbg);color:var(--red);border:1px solid var(--rdb)">Dynamic · changes live</span>
+      <div style="flex:1"></div><button class="rbtn" onclick="resetAllGainers()">Reset All</button>
+    </div>
+    <div class="dp-body">
+      <div class="hint"><b>Source:</b> nseindia.com → Market Data → Top Gainers. Paste symbols, full page copy, or drop MA-Equities CSV — symbols extracted automatically from any format. <span style="color:var(--red);font-weight:700">⚠ Do NOT paste before 9:25 AM.</span></div>
+      <div class="gtabs">
+        <div class="gtab on" onclick="gTab(0,this)" id="gtab0"><input class="g-ti" id="gt0" value="9:30 AM" onclick="event.stopPropagation()"/><span class="gcnt" id="gc0" style="display:none">0</span></div>
+        <div class="gtab" onclick="gTab(1,this)" id="gtab1"><input class="g-ti" id="gt1" value="10:00 AM" onclick="event.stopPropagation()"/><span class="gcnt" id="gc1" style="display:none">0</span></div>
+        <div class="gtab" onclick="gTab(2,this)" id="gtab2"><input class="g-ti" id="gt2" value="10:30 AM" onclick="event.stopPropagation()"/><span class="gcnt" id="gc2" style="display:none">0</span></div>
+        <div class="gtab" onclick="gTab(3,this)" id="gtab3"><input class="g-ti" id="gt3" value="11:00 AM" onclick="event.stopPropagation()"/><span class="gcnt" id="gc3" style="display:none">0</span></div>
+      </div>
+      <div class="gdz" id="gDZ" onclick="document.getElementById('gFile').click()" ondragover="ev=>{ev.preventDefault();this.classList.add('over')}" ondragleave="this.classList.remove('over')" ondrop="dropFile(event,'gainer')">
+        <input type="file" id="gFile" accept=".csv,.txt" onchange="loadFile(event,'gainer')"/>
+        📂 Drag &amp; drop MA-Equities CSV — or paste symbols/full NSE page below
+      </div>
+      <textarea class="gta" id="g0" placeholder="Paste top gainer symbols @ 9:30 AM&#10;Simple: TATASTEEL TATAPOWER AGIIL BHEL&#10;OR paste full NSE page copy — symbols extracted automatically"></textarea>
+      <textarea class="gta" id="g1" style="display:none" placeholder="Paste @ 10:00 AM..."></textarea>
+      <textarea class="gta" id="g2" style="display:none" placeholder="Paste @ 10:30 AM..."></textarea>
+      <textarea class="gta" id="g3" style="display:none" placeholder="Paste @ 11:00 AM..."></textarea>
+      <div class="g-ftr">
+        <button onclick="parseGainerTab()" style="padding:6px 14px;font-size:12px;font-weight:700;background:var(--amb);color:#fff;border:none;border-radius:7px;cursor:pointer">Parse This Tab</button>
+        <button onclick="resetGainerTab()" class="rbtn">Reset Tab</button>
+        <span id="gStatus" style="font-size:12px;color:var(--t3);font-family:var(--mono)"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stitle" style="margin-top:18px"><span>★ Final Picks — Top 5 Watchlist for Today</span></div>
+<div class="pw">
+  <div class="ph">
+    <span style="font-size:15px;font-weight:700;color:var(--gold)">Best 5 Stocks · Ranked by Score</span>
+    <span style="font-size:12px;color:var(--t3)">Score = (Freq×20) + (Chg%×3) + (Vol/L×0.5 max 25) + (Delivery%×0.4) + (Gainer×8)</span>
+  </div>
+  <div class="pg" id="picksGrid"><div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3);font-size:14px">Click ▶ Build to calculate picks</div></div>
+  <div class="sec-summary" id="secSummary" style="display:none">
+    <span style="font-size:13px;font-weight:700;color:var(--t2)">Sectors in picks:</span>
+    <div id="secCounts" style="display:flex;gap:7px;flex-wrap:wrap"></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ MATRIX ══════════════════════════════════════════ -->
+<div class="tc" id="tab-matrix">
+<div style="display:flex;justify-content:flex-end;padding:7px 0"><button class="rbtn" onclick="renderMatrix()">↺ Refresh</button></div>
+
+<div class="stitle"><span>★ Best 5 — Quick Reference</span></div>
+<div class="mw" style="margin-bottom:14px">
+  <div id="picksMini" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px;background:var(--card2)">
+    <div style="padding:14px;color:var(--t3);font-size:13px">Click ▶ Build to see picks</div>
+  </div>
+</div>
+
+<div class="stitle"><span>Frequency Matrix — All Stocks Across 5 Scans</span>
+  <span style="font-size:11px;font-weight:500;color:var(--t4);text-transform:none;letter-spacing:0;margin-left:4px">Higher frequency = more scans = stronger conviction · Click headers to sort</span>
+</div>
+<div id="statsRow" class="sr"></div>
+<div class="mw">
+  <div class="mh">
+    <span class="mt">All Stocks Across 5 Scans</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;color:var(--t3);font-weight:600">Sort by</span>
+      <select class="csel" id="sortBy" onchange="renderMatrix()">
+        <option value="freq">Frequency</option><option value="score">Score</option>
+        <option value="chg">% Change</option><option value="del">Delivery %</option><option value="vol">Volume</option>
+      </select>
+    </div>
+  </div>
+  <div class="ts">
+    <table>
+      <thead><tr>
+        <th class="tl" style="padding-left:14px;min-width:130px" onclick="sortCol('sym')">Symbol</th>
+        <th class="tl" style="min-width:175px" onclick="sortCol('name')">Stock Name</th>
+        <th style="min-width:80px" onclick="sortCol('close')">Close ₹</th>
+        <th style="min-width:80px" onclick="sortCol('chg')">Chg %</th>
+        <th style="min-width:75px" onclick="sortCol('vol')">Volume</th>
+        <th style="min-width:34px;color:var(--c1)">S1</th><th style="min-width:34px;color:var(--c2)">S2</th>
+        <th style="min-width:34px;color:var(--c3)">S3</th><th style="min-width:34px;color:var(--c4)">S4</th>
+        <th style="min-width:34px;color:var(--c5)">S5</th>
+        <th style="min-width:52px" onclick="sortCol('freq')">Freq</th>
+        <th style="min-width:80px" onclick="sortCol('gfreq')">Gainers</th>
+        <th style="min-width:90px" onclick="sortCol('del')">Delivery %</th>
+        <th style="min-width:68px" onclick="sortCol('score')">Score</th>
+      </tr></thead>
+      <tbody id="matBody"><tr><td colspan="14" style="text-align:center;padding:36px;color:var(--t3);font-size:14px">Click ▶ Build to calculate</td></tr></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ══ AI ════════════════════════════════════════════ -->
+<div class="tc" id="tab-ai">
+<div style="display:flex;justify-content:flex-end;padding:7px 0">
+  <button class="rbtn" onclick="document.getElementById('aiBrief').innerHTML='<span style=color:var(--t4)>Cleared.</span>'">↺ Clear</button>
+</div>
+<div class="ai-wrap">
+  <div class="ai-hdr">
+    <div class="ai-ttl">✦ AI Trade Brief — Google Gemini (100% Free)</div>
+    <div class="ai-key-row">
+      <input class="ai-key-input" type="password" id="geminiKey" placeholder="Paste free Gemini API key (aistudio.google.com → Get API Key)" oninput="saveKeyLive()"/>
+      <button onclick="openModal()" style="padding:6px 12px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:7px;cursor:pointer">How to get key?</button>
+      <span id="keyStatus" style="font-size:11px;font-family:var(--mono);color:var(--t4)"></span>
+    </div>
+  </div>
+  <div class="ai-body">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="runAI('full')" style="padding:7px 16px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px"><span id="aiSpin" style="display:none" class="spin"></span>Generate Full Trade Brief</button>
+      <button onclick="runAI('quick')" style="padding:7px 13px;font-size:12px;font-weight:700;background:var(--blbg);color:var(--blu);border:1.5px solid var(--blb);border-radius:7px;cursor:pointer">Quick Risk Check</button>
+      <button onclick="runAI('entry')" style="padding:7px 13px;font-size:12px;font-weight:700;background:var(--gnbg);color:var(--grn);border:1.5px solid var(--gnb);border-radius:7px;cursor:pointer">Entry Conditions</button>
+      <button onclick="runAI('caution')" style="padding:7px 13px;font-size:12px;font-weight:700;background:var(--abbg);color:var(--amb);border:1.5px solid var(--abb);border-radius:7px;cursor:pointer">⚠ Caution Points</button>
+      <button onclick="showPrompt()" style="padding:7px 13px;font-size:12px;font-weight:700;background:var(--card2);color:var(--t3);border:1.5px solid var(--b2);border-radius:7px;cursor:pointer">👁 Show Prompt</button>
+    </div>
+    <div id="promptPreview" style="display:none;background:#f0f4ff;border:1.5px solid var(--blb);border-radius:8px;padding:10px 13px;margin-bottom:10px;font-size:11px;font-family:var(--mono);color:var(--t2);white-space:pre-wrap;max-height:180px;overflow-y:auto"></div>
+    <div class="ai-brief" id="aiBrief"><span style="color:var(--t4);font-style:italic">Build the dashboard first (▶ Build), then click Generate Full Trade Brief.</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--t4);font-family:var(--mono)">Free tier: 15 req/min · 1M tokens/day · Key saved in your browser only · Never leaves your device</div>
+  </div>
+</div>
+</div>
+
+<!-- ══ RULES ═══════════════════════════════════════════ -->
+<div class="tc" id="tab-guide">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;flex:1;background:var(--gnbg);border:1px solid var(--gnb);border-radius:9px;padding:9px 14px">
+    <span style="font-size:14px;font-weight:700;color:var(--grn);white-space:nowrap">Pre-trade Checklist</span>
+    <div style="flex:1;height:9px;background:var(--b1);border-radius:5px;overflow:hidden"><div id="rulesBar" style="height:100%;background:var(--grn);border-radius:5px;transition:width .3s;width:0%"></div></div>
+    <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--grn);white-space:nowrap" id="rulesNum">0 / 0 confirmed</span>
+  </div>
+  <button class="rbtn" onclick="resetGuide()">↺ Uncheck All</button>
+</div>
+<div class="gw">
+
+<div class="gs">
+  <div class="gs-hdr" style="background:var(--gnbg);color:var(--grn)">✅ Entry Rules — Confirm before every trade</div>
+  <div class="gs-body">
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Frequency ≥ 2</b> — Stock appeared in at least 2 scans. Not a one-time spike. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>1hr chart above EMA20</b> — Macro uptrend confirmed. If below EMA20 on 1hr, skip entirely. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>15m support holds</b> — Prior day high acting as support after breakout. No close below it. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>5m rejection candle at the zone</b> — Hammer or bullish engulf at 15m support. NOT entering the breakout candle. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Volume on bounce higher than on pullback</b> — Volume contracts on way down, expands on bounce. Institutional footprint. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Nifty50 aligned</b> — Index moving same direction as your trade at the moment of entry. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>R:R minimum 1:2</b> — Target is at least 2× the stop distance. Calculate before entering. <span class="rtag tag-do">MUST</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Risk max 1% capital per trade</b> — Qty = (Capital × 0.01) ÷ (Entry − SL). Pre-calculated before market opens. <span class="rtag tag-do">MUST</span></div></div>
+  </div>
+</div>
+
+<div class="gs">
+  <div class="gs-hdr" style="background:var(--rdbg);color:var(--red)">🚫 Hard Rules — Read before entering. No exceptions.</div>
+  <div class="gs-body">
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will NOT enter in the first 5 minutes (9:15–9:20 AM).</b> Observe only. No matter how good it looks. <span class="rtag tag-dont">HARD RULE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will NOT chase a breakout candle.</b> If missed the entry, wait for next pullback. Chasing = buying someone's exit. <span class="rtag tag-dont">NO EXCEPTIONS</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will exit all positions by 11:15 AM.</b> Phone alarm is set. No holding. Intraday means intraday. <span class="rtag tag-dont">HARD RULE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will NOT take more than 3 trades today.</b> After 3 losses, I stop for the day completely. <span class="rtag tag-dont">HARD RULE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will NOT trade after hitting 2% daily loss limit.</b> Close terminal. Write journal. No revenge trading. <span class="rtag tag-dont">CAPITAL RULE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will NOT trade stocks with news or results today.</b> News = randomness. My system has no edge on news stocks. <span class="rtag tag-dont">REMOVE ALWAYS</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I will NOT enter if GIFT Nifty gap is above 1.5%.</b> Move already given. Wait for gap to normalise first. <span class="rtag tag-c">CAUTION</span></div></div>
+  </div>
+</div>
+
+<div class="gs">
+  <div class="gs-hdr" style="background:var(--abbg);color:var(--amb)">⚠ Market Condition Adjustments — Check daily</div>
+  <div class="gs-body">
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Bullish + Trending + Low VIX:</b> Full position size. Enter at first pullback. Target 3R. Trail after T1. <span class="rtag tag-do">FULL SIZE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Bullish + Choppy or High VIX:</b> 50% size. Min frequency raised to 3. Only top sector stocks. <span class="rtag tag-c">HALF SIZE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Bearish or Panic mood:</b> Short setups only. Min % to 3. Max 1 trade. Risk 0.5% per trade. <span class="rtag tag-c">HALF SIZE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Delivery % below 30%:</b> Intraday-driven. Use tighter stop. Do not hold to T2. <span class="rtag tag-c">TIGHT STOP</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Freq = 5 + gainer 3×:</b> Highest conviction. Full size. Target T2 (3R). This is the ideal setup. <span class="rtag tag-do">BEST SIGNAL</span></div></div>
+  </div>
+</div>
+
+<div class="gs">
+  <div class="gs-hdr" style="background:var(--blbg);color:var(--blu)">📐 Trade Management — Once inside a trade</div>
+  <div class="gs-body">
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Stop loss placed immediately at entry</b> — Below ORB low (long) or above ORB high (short) + 0.1–0.2% buffer. <span class="rtag tag-do">IMMEDIATE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>T1 hit at 1.5R</b> → book 50% → move stop to breakeven. Now have a risk-free second half. <span class="rtag tag-do">ALWAYS</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>Trail stop behind each 15m higher low</b> toward T2 (3R). Do not exit manually before T2 unless structure breaks. <span class="rtag tag-do">LET IT RUN</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>11:15 AM alarm is set on my phone.</b> I close all positions when it rings, regardless of P&amp;L. <span class="rtag tag-dont">NON-NEGOTIABLE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I journal every trade</b> — Time, symbol, entry, exit, reason, result, emotion. Reviewed every Friday. <span class="rtag tag-do">GROWTH HABIT</span></div></div>
+  </div>
+</div>
+
+<div class="gs">
+  <div class="gs-hdr" style="background:var(--pubg);color:var(--pur)">🧠 Psychology — Read when feeling emotional</div>
+  <div class="gs-body">
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>I have checked my emotional state.</b> Anxious, angry or overconfident = 50% size today only. <span class="rtag tag-do">PRE-MARKET</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>FOMO is the enemy.</b> If I missed the setup, it is gone. There is always another day. No chasing. <span class="rtag tag-dont">NEVER CHASE</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>A stopped-out trade ≠ a bad trade</b> if I followed the system. A rule-break that wins teaches the wrong lesson. <span class="rtag tag-c">MINDSET</span></div></div>
+    <div class="rrow"><div class="rcheck" onclick="toggleCheck(this)"></div><div class="rtxt"><b>After any loss</b> — wait 15 minutes before looking at charts. Write in journal first. <span class="rtag tag-dont">AFTER LOSS</span></div></div>
+  </div>
+</div>
+
+</div></div>
+
+</div><!-- /main -->
+<div class="sbar" id="sbar">Ready · Pre-loaded: 5 scans · NSE: 2432 EQ stocks · Click ▶ Build to start</div>
+
+<script>
+// DATA PLACEHOLDER - replaced by build script
+const INIT_MATRIX=[{"sym": "TATAPOWER", "name": "Tata Power Company Limited", "close": 411.0, "chg": 3.36, "vol": 2533959, "freq": 5, "dpct": 36.21, "score": 137.2, "scans": [1, 1, 1, 1, 1]}, {"sym": "BLISSGVS", "name": "Bliss Gvs Pharma Limited", "close": 212.57, "chg": 2.65, "vol": 81463, "freq": 5, "dpct": 59.9, "score": 132.3, "scans": [1, 1, 1, 1, 1]}, {"sym": "CGPOWER", "name": "CG Power and Industrial Solutions Ltd", "close": 704.45, "chg": 2.48, "vol": 162169, "freq": 5, "dpct": 49.37, "score": 128.0, "scans": [1, 1, 1, 1, 1]}, {"sym": "AGIIL", "name": "AGI Infra Ltd", "close": 316.0, "chg": 3.65, "vol": 655342, "freq": 5, "dpct": 27.01, "score": 125.0, "scans": [1, 1, 1, 1, 1]}, {"sym": "VIKRAMSOLR", "name": "Vikram Solar Ltd", "close": 194.15, "chg": 2.84, "vol": 189580, "freq": 5, "dpct": 32.46, "score": 122.5, "scans": [1, 1, 1, 1, 1]}, {"sym": "COALINDIA", "name": "Coal India Limited", "close": 464.8, "chg": 2.69, "vol": 1603344, "freq": 4, "dpct": 58.88, "score": 119.6, "scans": [1, 0, 1, 1, 1]}, {"sym": "FINCABLES", "name": "Finolex Cables Limited", "close": 875.7, "chg": 3.32, "vol": 35304, "freq": 4, "dpct": 70.93, "score": 118.5, "scans": [1, 0, 1, 1, 1]}, {"sym": "ADANIPOWER", "name": "Adani Power Limited", "close": 154.09, "chg": 2.23, "vol": 2210441, "freq": 4, "dpct": 39.14, "score": 113.4, "scans": [1, 0, 1, 1, 1]}, {"sym": "FEDFINA", "name": "Fedbank Financial Services Ltd", "close": 135.99, "chg": 3.42, "vol": 70393, "freq": 4, "dpct": 56.4, "score": 113.2, "scans": [1, 0, 1, 1, 1]}, {"sym": "BHEL", "name": "Bharat Heavy Electricals Limited", "close": 259.15, "chg": 3.28, "vol": 915732, "freq": 4, "dpct": 44.01, "score": 112.0, "scans": [1, 0, 1, 1, 1]}, {"sym": "PTC", "name": "Ptc India Limited", "close": 164.45, "chg": 3.05, "vol": 138545, "freq": 4, "dpct": 54.41, "score": 111.6, "scans": [1, 0, 1, 1, 1]}, {"sym": "IREDA", "name": "Indian Renewable Energy Development Agency Ltd", "close": 119.89, "chg": 2.85, "vol": 1911906, "freq": 4, "dpct": 31.22, "score": 110.6, "scans": [1, 0, 1, 1, 1]}, {"sym": "JSWENERGY", "name": "Jsw Energy Limited", "close": 519.65, "chg": 3.02, "vol": 452856, "freq": 4, "dpct": 46.64, "score": 110.0, "scans": [1, 0, 1, 1, 1]}, {"sym": "ADANIENSOL", "name": "Adani Energy Solutions Ltd", "close": 1027.0, "chg": 2.81, "vol": 169024, "freq": 4, "dpct": 50.94, "score": 109.7, "scans": [1, 0, 1, 1, 1]}, {"sym": "CESC", "name": "Cesc Limited", "close": 157.71, "chg": 2.67, "vol": 242488, "freq": 4, "dpct": 47.69, "score": 108.3, "scans": [1, 0, 1, 1, 1]}, {"sym": "KTKBANK", "name": "The Karnataka Bank Limited", "close": 238.1, "chg": 2.95, "vol": 673181, "freq": 4, "dpct": 37.27, "score": 107.1, "scans": [1, 0, 1, 1, 1]}, {"sym": "TARIL", "name": "Transformers & Rectifiers India Ltd", "close": 287.35, "chg": 4.59, "vol": 1031910, "freq": 4, "dpct": 18.99, "score": 106.5, "scans": [1, 0, 1, 1, 1]}, {"sym": "J&KBANK", "name": "The Jammu & Kashmir Bank Limited", "close": 122.05, "chg": 3.46, "vol": 601426, "freq": 4, "dpct": 32.04, "score": 106.2, "scans": [1, 0, 1, 1, 1]}, {"sym": "NITINSPIN", "name": "Nitin Spinners Limited", "close": 373.75, "chg": 2.99, "vol": 7945, "freq": 4, "dpct": 39.23, "score": 104.7, "scans": [1, 0, 1, 1, 1]}, {"sym": "JINDALSAW", "name": "Jindal Saw Limited", "close": 194.05, "chg": 2.75, "vol": 477451, "freq": 4, "dpct": 31.4, "score": 103.2, "scans": [1, 0, 1, 1, 1]}, {"sym": "TDPOWERSYS", "name": "Td Power Systems Limited", "close": 854.55, "chg": 2.59, "vol": 78830, "freq": 4, "dpct": 36.21, "score": 102.6, "scans": [1, 0, 1, 1, 1]}, {"sym": "NATCOPHARM", "name": "Natco Pharma Limited", "close": 957.25, "chg": 2.61, "vol": 104793, "freq": 4, "dpct": 29.51, "score": 100.2, "scans": [1, 0, 1, 1, 1]}, {"sym": "SYRMA", "name": "Syrma SGS Technology Ltd", "close": 775.6, "chg": 2.74, "vol": 158023, "freq": 4, "dpct": 24.51, "score": 98.8, "scans": [1, 0, 1, 1, 1]}, {"sym": "OLECTRA", "name": "Olectra Greentech Ltd", "close": 1040.9, "chg": 3.67, "vol": 267197, "freq": 4, "dpct": 7.89, "score": 95.5, "scans": [1, 0, 1, 1, 1]}, {"sym": "FACT", "name": "Fertilizers And Chemicals Travancore Limited", "close": 814.15, "chg": 2.95, "vol": 102731, "freq": 4, "dpct": 12.37, "score": 94.3, "scans": [1, 0, 1, 1, 1]}, {"sym": "DATAPATTNS", "name": "Data Patterns (India) Ltd", "close": 3323.0, "chg": 2.26, "vol": 104022, "freq": 3, "dpct": 19.1, "score": 74.9, "scans": [0, 1, 1, 0, 1]}, {"sym": "TATASTEEL", "name": "Tata Steel Limited", "close": 198.7, "chg": 4.31, "vol": 5967020, "freq": 2, "dpct": 43.11, "score": 95.2, "scans": [1, 0, 0, 1, 0]}, {"sym": "NTPC", "name": "Ntpc Limited", "close": 381.8, "chg": 2.13, "vol": 1325956, "freq": 2, "dpct": 66.57, "score": 79.6, "scans": [1, 0, 0, 1, 0]}, {"sym": "POWERGRID", "name": "Power Grid Corporation Of India Limited", "close": 303.55, "chg": 2.35, "vol": 911480, "freq": 2, "dpct": 63.93, "score": 77.2, "scans": [1, 0, 0, 1, 0]}, {"sym": "SAIL", "name": "Steel Authority Of India Limited", "close": 155.86, "chg": 2.51, "vol": 2332174, "freq": 2, "dpct": 41.82, "score": 75.9, "scans": [1, 0, 0, 1, 0]}, {"sym": "PFC", "name": "Power Finance Corporation Limited", "close": 423.8, "chg": 3.15, "vol": 1086638, "freq": 2, "dpct": 47.0, "score": 73.7, "scans": [1, 0, 0, 1, 0]}, {"sym": "PNBHOUSING", "name": "Pnb Housing Finance Limited", "close": 806.95, "chg": 2.46, "vol": 91373, "freq": 2, "dpct": 57.75, "score": 70.9, "scans": [1, 0, 0, 1, 0]}, {"sym": "DELHIVERY", "name": "Delhivery Ltd", "close": 422.05, "chg": 2.08, "vol": 118444, "freq": 2, "dpct": 56.97, "score": 69.6, "scans": [1, 0, 0, 1, 0]}, {"sym": "PARADEEP", "name": "Paradeep Phosphates Ltd", "close": 116.26, "chg": 2.77, "vol": 255659, "freq": 2, "dpct": 46.4, "score": 68.1, "scans": [0, 0, 1, 0, 1]}, {"sym": "GPIL", "name": "Godawari Power And Ispat Limited", "close": 259.45, "chg": 3.51, "vol": 224608, "freq": 2, "dpct": 40.04, "score": 67.7, "scans": [1, 0, 0, 1, 0]}, {"sym": "OSWALPUMPS", "name": "Oswal Pumps Ltd", "close": 319.0, "chg": 4.65, "vol": 154700, "freq": 2, "dpct": 31.68, "score": 67.4, "scans": [1, 0, 0, 1, 0]}, {"sym": "NLCINDIA", "name": "Nlc India Limited", "close": 269.65, "chg": 3.39, "vol": 368990, "freq": 2, "dpct": 35.91, "score": 66.4, "scans": [0, 0, 1, 1, 0]}, {"sym": "AUROPHARMA", "name": "Aurobindo Pharma Limited", "close": 1279.9, "chg": 2.59, "vol": 82942, "freq": 2, "dpct": 45.4, "score": 66.3, "scans": [1, 0, 0, 1, 0]}, {"sym": "ABSLAMC", "name": "Aditya Birla Sun Life AMC Ltd", "close": 956.0, "chg": 2.42, "vol": 14517, "freq": 2, "dpct": 44.94, "score": 65.3, "scans": [0, 0, 1, 0, 1]}, {"sym": "GMDCLTD", "name": "Gujarat Mineral Development Corporation Limited", "close": 559.25, "chg": 5.0, "vol": 538332, "freq": 2, "dpct": 13.39, "score": 63.0, "scans": [1, 0, 0, 1, 0]}, {"sym": "JMFINANCIL", "name": "Jm Financial Limited", "close": 125.25, "chg": 2.3, "vol": 355842, "freq": 2, "dpct": 31.41, "score": 61.2, "scans": [1, 0, 0, 1, 0]}, {"sym": "HAPPSTMNDS", "name": "Happiest Minds Technologies Ltd", "close": 399.15, "chg": 4.93, "vol": 860375, "freq": 2, "dpct": 4.05, "score": 60.7, "scans": [0, 1, 1, 0, 0]}, {"sym": "JBMA", "name": "Jbm Auto Limited", "close": 563.05, "chg": 3.08, "vol": 1601645, "freq": 2, "dpct": 5.49, "score": 59.4, "scans": [0, 0, 1, 1, 0]}, {"sym": "PRECWIRE", "name": "Precision Wires India Limited", "close": 310.8, "chg": 2.99, "vol": 111443, "freq": 2, "dpct": 20.97, "score": 57.9, "scans": [0, 0, 1, 1, 0]}, {"sym": "WAAREEENER", "name": "Waaree Energies Ltd", "close": 3232.1, "chg": 2.41, "vol": 331324, "freq": 2, "dpct": 21.66, "score": 57.6, "scans": [0, 0, 1, 0, 1]}, {"sym": "BELRISE", "name": "Belrise Industries Ltd", "close": 186.47, "chg": 5.19, "vol": 975725, "freq": 1, "dpct": 53.54, "score": 61.9, "scans": [0, 0, 0, 1, 0]}, {"sym": "RELIANCE", "name": "Reliance Industries Limited", "close": 1413.0, "chg": 2.04, "vol": 1419987, "freq": 1, "dpct": 56.1, "score": 55.7, "scans": [1, 0, 0, 0, 0]}, {"sym": "KSB", "name": "KSB Ltd", "close": 821.65, "chg": 2.73, "vol": 36787, "freq": 1, "dpct": 43.46, "score": 45.8, "scans": [0, 0, 0, 1, 0]}, {"sym": "JINDALSTEL", "name": "Jindal Steel Ltd", "close": 1177.8, "chg": 3.49, "vol": 142425, "freq": 1, "dpct": 35.14, "score": 45.2, "scans": [1, 0, 0, 0, 0]}, {"sym": "CHENNPETRO", "name": "Chennai Petroleum Corporation Limited", "close": 1056.3, "chg": 3.53, "vol": 690723, "freq": 1, "dpct": 12.34, "score": 39.0, "scans": [0, 0, 0, 1, 0]}, {"sym": "MAZDOCK", "name": "Mazagon Dock Shipbuilders Ltd", "close": 2408.8, "chg": 2.01, "vol": 220115, "freq": 1, "dpct": 27.51, "score": 38.1, "scans": [0, 0, 0, 1, 0]}, {"sym": "KPIGREEN", "name": "KPI Green Energy Ltd", "close": 382.45, "chg": 2.22, "vol": 115899, "freq": 1, "dpct": 26.08, "score": 37.7, "scans": [0, 0, 0, 1, 0]}, {"sym": "MOIL", "name": "Moil Limited", "close": 299.8, "chg": 2.51, "vol": 331689, "freq": 1, "dpct": 15.4, "score": 35.3, "scans": [0, 0, 1, 0, 0]}];
+const INIT_SECTORS=[{"name": "NIFTY IT", "chg": 2.17}, {"name": "NIFTY PSU BANK", "chg": 2.07}, {"name": "NIFTY PHARMA", "chg": 1.99}, {"name": "NIFTY HEALTHCARE INDEX", "chg": 1.89}, {"name": "NIFTY MIDSMALL IT & TELECOM", "chg": 1.48}, {"name": "NIFTY MIDSMALL HEALTHCARE", "chg": 1.46}, {"name": "NIFTY METAL", "chg": 1.45}, {"name": "NIFTY500 HEALTHCARE", "chg": 1.44}, {"name": "NIFTY INDIA DIGITAL", "chg": 1.39}, {"name": "NIFTY COMMODITIES", "chg": 1.28}, {"name": "NIFTY DIVIDEND OPPORTUNITIES 50", "chg": 1.08}, {"name": "NIFTY200 QUALITY 30", "chg": 1.01}, {"name": "NIFTY EV & NEW AGE AUTOMOTIVE", "chg": 0.99}, {"name": "NIFTY INFRASTRUCTURE", "chg": 0.96}, {"name": "NIFTY100 QUALITY 30", "chg": 0.9}];
+const INIT_SCAN_DATA={"1": [{"sym": "GMDCLTD", "name": "Gujarat Mineral Development Corporation Limited", "close": 562.5, "chg": 5.31, "vol": 575380.0}, {"sym": "OSWALPUMPS", "name": "Oswal Pumps Ltd", "close": 318.65, "chg": 4.6, "vol": 158470.0}, {"sym": "TARIL", "name": "Transformers & Rectifiers India Ltd", "close": 286.55, "chg": 4.47, "vol": 1254160.0}, {"sym": "TATASTEEL", "name": "Tata Steel Limited", "close": 198.74, "chg": 4.32, "vol": 6068464.0}, {"sym": "AGIIL", "name": "AGI Infra Ltd", "close": 319.35, "chg": 4.26, "vol": 1198029.0}, {"sym": "TATAPOWER", "name": "Tata Power Company Limited", "close": 414.95, "chg": 4.13, "vol": 4037201.0}, {"sym": "J&KBANK", "name": "The Jammu & Kashmir Bank Limited", "close": 123.39, "chg": 4.06, "vol": 860430.0}, {"sym": "FINCABLES", "name": "Finolex Cables Limited", "close": 880.6, "chg": 3.62, "vol": 44615.0}, {"sym": "ADANIENSOL", "name": "Adani Energy Solutions Ltd", "close": 1041.5, "chg": 3.6, "vol": 248107.0}, {"sym": "PTC", "name": "Ptc India Limited", "close": 166.0, "chg": 3.6, "vol": 210416.0}, {"sym": "BHEL", "name": "Bharat Heavy Electricals Limited", "close": 260.75, "chg": 3.58, "vol": 1173386.0}, {"sym": "GPIL", "name": "Godawari Power And Ispat Limited", "close": 259.55, "chg": 3.53, "vol": 229293.0}, {"sym": "JINDALSTEL", "name": "Jindal Steel Ltd", "close": 1177.8, "chg": 3.49, "vol": 142425.0}, {"sym": "PFC", "name": "Power Finance Corporation Limited", "close": 425.85, "chg": 3.4, "vol": 1176468.0}, {"sym": "JSWENERGY", "name": "Jsw Energy Limited", "close": 523.0, "chg": 3.38, "vol": 565470.0}, {"sym": "SYRMA", "name": "Syrma SGS Technology Ltd", "close": 782.55, "chg": 3.25, "vol": 213187.0}, {"sym": "NATCOPHARM", "name": "Natco Pharma Limited", "close": 968.1, "chg": 3.2, "vol": 141500.0}, {"sym": "OLECTRA", "name": "Olectra Greentech Ltd", "close": 1032.65, "chg": 3.18, "vol": 341411.0}, {"sym": "FEDFINA", "name": "Fedbank Financial Services Ltd", "close": 135.41, "chg": 3.17, "vol": 84276.0}, {"sym": "COALINDIA", "name": "Coal India Limited", "close": 468.5, "chg": 3.15, "vol": 2224880.0}, {"sym": "NITINSPIN", "name": "Nitin Spinners Limited", "close": 374.55, "chg": 3.15, "vol": 10018.0}, {"sym": "BLISSGVS", "name": "Bliss Gvs Pharma Limited", "close": 213.65, "chg": 3.12, "vol": 120936.0}, {"sym": "JINDALSAW", "name": "Jindal Saw Limited", "close": 195.22, "chg": 3.1, "vol": 598400.0}, {"sym": "KTKBANK", "name": "The Karnataka Bank Limited", "close": 238.37, "chg": 3.05, "vol": 880479.0}, {"sym": "VIKRAMSOLR", "name": "Vikram Solar Ltd", "close": 193.69, "chg": 2.86, "vol": 269034.0}, {"sym": "SAIL", "name": "Steel Authority Of India Limited", "close": 156.89, "chg": 2.85, "vol": 2500328.0}, {"sym": "CESC", "name": "Cesc Limited", "close": 158.4, "chg": 2.84, "vol": 311463.0}, {"sym": "IREDA", "name": "Indian Renewable Energy Development Agency Ltd", "close": 119.86, "chg": 2.81, "vol": 2716964.0}, {"sym": "TDPOWERSYS", "name": "Td Power Systems Limited", "close": 856.3, "chg": 2.74, "vol": 92958.0}, {"sym": "FACT", "name": "Fertilizers And Chemicals Travancore Limited", "close": 808.45, "chg": 2.6, "vol": 117373.0}, {"sym": "AUROPHARMA", "name": "Aurobindo Pharma Limited", "close": 1279.7, "chg": 2.58, "vol": 84625.0}, {"sym": "ADANIPOWER", "name": "Adani Power Limited", "close": 154.9, "chg": 2.58, "vol": 2985479.0}, {"sym": "PNBHOUSING", "name": "Pnb Housing Finance Limited", "close": 808.0, "chg": 2.53, "vol": 92396.0}, {"sym": "CGPOWER", "name": "CG Power and Industrial Solutions Ltd", "close": 704.0, "chg": 2.52, "vol": 252651.0}, {"sym": "POWERGRID", "name": "Power Grid Corporation Of India Limited", "close": 303.8, "chg": 2.39, "vol": 921811.0}, {"sym": "JMFINANCIL", "name": "Jm Financial Limited", "close": 125.33, "chg": 2.34, "vol": 357074.0}, {"sym": "NTPC", "name": "Ntpc Limited", "close": 382.25, "chg": 2.19, "vol": 1341144.0}, {"sym": "DELHIVERY", "name": "Delhivery Ltd", "close": 422.0, "chg": 2.08, "vol": 118920.0}, {"sym": "RELIANCE", "name": "Reliance Industries Limited", "close": 1413.0, "chg": 2.04, "vol": 1419987.0}], "2": [{"sym": "AGIIL", "name": "AGI Infra Ltd", "close": 317.0, "chg": 3.49, "vol": 77836.0}, {"sym": "DATAPATTNS", "name": "Data Patterns (India) Ltd", "close": 3344.1, "chg": 2.69, "vol": 34481.0}, {"sym": "HAPPSTMNDS", "name": "Happiest Minds Technologies Ltd", "close": 380.8, "chg": 2.46, "vol": 138942.0}, {"sym": "CGPOWER", "name": "CG Power and Industrial Solutions Ltd", "close": 703.0, "chg": 2.37, "vol": 34243.0}, {"sym": "TATAPOWER", "name": "Tata Power Company Limited", "close": 407.95, "chg": 2.37, "vol": 509382.0}, {"sym": "VIKRAMSOLR", "name": "Vikram Solar Ltd", "close": 192.25, "chg": 2.1, "vol": 37354.0}, {"sym": "BLISSGVS", "name": "Bliss Gvs Pharma Limited", "close": 211.39, "chg": 2.03, "vol": 11334.0}], "3": [{"sym": "HAPPSTMNDS", "name": "Happiest Minds Technologies Ltd", "close": 399.15, "chg": 7.4, "vol": 1581808.0}, {"sym": "TARIL", "name": "Transformers & Rectifiers India Ltd", "close": 287.35, "chg": 4.76, "vol": 817053.0}, {"sym": "OLECTRA", "name": "Olectra Greentech Ltd", "close": 1040.9, "chg": 4.01, "vol": 199612.0}, {"sym": "FEDFINA", "name": "Fedbank Financial Services Ltd", "close": 135.99, "chg": 3.61, "vol": 56879.0}, {"sym": "JBMA", "name": "Jbm Auto Limited", "close": 568.6, "chg": 3.58, "vol": 1270879.0}, {"sym": "FACT", "name": "Fertilizers And Chemicals Travancore Limited", "close": 814.15, "chg": 3.33, "vol": 88971.0}, {"sym": "AGIIL", "name": "AGI Infra Ltd", "close": 316.0, "chg": 3.17, "vol": 403576.0}, {"sym": "TATAPOWER", "name": "Tata Power Company Limited", "close": 411.0, "chg": 3.14, "vol": 2192953.0}, {"sym": "VIKRAMSOLR", "name": "Vikram Solar Ltd", "close": 194.15, "chg": 3.11, "vol": 187430.0}, {"sym": "FINCABLES", "name": "Finolex Cables Limited", "close": 875.7, "chg": 3.05, "vol": 26274.0}, {"sym": "BHEL", "name": "Bharat Heavy Electricals Limited", "close": 259.15, "chg": 2.94, "vol": 663566.0}, {"sym": "NITINSPIN", "name": "Nitin Spinners Limited", "close": 373.75, "chg": 2.93, "vol": 6157.0}, {"sym": "KTKBANK", "name": "The Karnataka Bank Limited", "close": 238.1, "chg": 2.93, "vol": 508482.0}, {"sym": "J&KBANK", "name": "The Jammu & Kashmir Bank Limited", "close": 122.05, "chg": 2.93, "vol": 356076.0}, {"sym": "IREDA", "name": "Indian Renewable Energy Development Agency Ltd", "close": 119.89, "chg": 2.84, "vol": 1132347.0}, {"sym": "PARADEEP", "name": "Paradeep Phosphates Ltd", "close": 116.26, "chg": 2.77, "vol": 255659.0}, {"sym": "JSWENERGY", "name": "Jsw Energy Limited", "close": 519.65, "chg": 2.72, "vol": 344843.0}, {"sym": "PTC", "name": "Ptc India Limited", "close": 164.45, "chg": 2.63, "vol": 81691.0}, {"sym": "BLISSGVS", "name": "Bliss Gvs Pharma Limited", "close": 212.57, "chg": 2.6, "vol": 78909.0}, {"sym": "CGPOWER", "name": "CG Power and Industrial Solutions Ltd", "close": 704.45, "chg": 2.58, "vol": 145012.0}, {"sym": "TDPOWERSYS", "name": "Td Power Systems Limited", "close": 854.55, "chg": 2.53, "vol": 65487.0}, {"sym": "NLCINDIA", "name": "Nlc India Limited", "close": 265.2, "chg": 2.53, "vol": 195334.0}, {"sym": "MOIL", "name": "Moil Limited", "close": 299.8, "chg": 2.51, "vol": 331689.0}, {"sym": "JINDALSAW", "name": "Jindal Saw Limited", "close": 194.05, "chg": 2.48, "vol": 364854.0}, {"sym": "ABSLAMC", "name": "Aditya Birla Sun Life AMC Ltd", "close": 956.0, "chg": 2.42, "vol": 14517.0}, {"sym": "WAAREEENER", "name": "Waaree Energies Ltd", "close": 3232.1, "chg": 2.41, "vol": 331324.0}, {"sym": "CESC", "name": "Cesc Limited", "close": 157.71, "chg": 2.4, "vol": 177899.0}, {"sym": "SYRMA", "name": "Syrma SGS Technology Ltd", "close": 775.6, "chg": 2.34, "vol": 108776.0}, {"sym": "COALINDIA", "name": "Coal India Limited", "close": 464.8, "chg": 2.33, "vol": 1023367.0}, {"sym": "PRECWIRE", "name": "Precision Wires India Limited", "close": 306.2, "chg": 2.22, "vol": 86231.0}, {"sym": "ADANIENSOL", "name": "Adani Energy Solutions Ltd", "close": 1027.0, "chg": 2.16, "vol": 94576.0}, {"sym": "DATAPATTNS", "name": "Data Patterns (India) Ltd", "close": 3323.0, "chg": 2.05, "vol": 138793.0}, {"sym": "NATCOPHARM", "name": "Natco Pharma Limited", "close": 957.25, "chg": 2.05, "vol": 72845.0}, {"sym": "ADANIPOWER", "name": "Adani Power Limited", "close": 154.09, "chg": 2.04, "vol": 1467951.0}], "4": [{"sym": "BELRISE", "name": "Belrise Industries Ltd", "close": 186.47, "chg": 5.19, "vol": 975725.0}, {"sym": "OSWALPUMPS", "name": "Oswal Pumps Ltd", "close": 319.0, "chg": 4.71, "vol": 150931.0}, {"sym": "GMDCLTD", "name": "Gujarat Mineral Development Corporation Limited", "close": 559.25, "chg": 4.7, "vol": 501284.0}, {"sym": "TARIL", "name": "Transformers & Rectifiers India Ltd", "close": 286.3, "chg": 4.37, "vol": 1239372.0}, {"sym": "TATASTEEL", "name": "Tata Steel Limited", "close": 198.7, "chg": 4.3, "vol": 5865575.0}, {"sym": "NLCINDIA", "name": "Nlc India Limited", "close": 269.65, "chg": 4.25, "vol": 542646.0}, {"sym": "AGIIL", "name": "AGI Infra Ltd", "close": 319.0, "chg": 4.15, "vol": 1193691.0}, {"sym": "TATAPOWER", "name": "Tata Power Company Limited", "close": 414.5, "chg": 4.02, "vol": 3737307.0}, {"sym": "J&KBANK", "name": "The Jammu & Kashmir Bank Limited", "close": 123.25, "chg": 3.94, "vol": 833122.0}, {"sym": "PRECWIRE", "name": "Precision Wires India Limited", "close": 310.8, "chg": 3.76, "vol": 136655.0}, {"sym": "BHEL", "name": "Bharat Heavy Electricals Limited", "close": 260.95, "chg": 3.65, "vol": 1162410.0}, {"sym": "FINCABLES", "name": "Finolex Cables Limited", "close": 880.15, "chg": 3.57, "vol": 44053.0}, {"sym": "CHENNPETRO", "name": "Chennai Petroleum Corporation Limited", "close": 1056.3, "chg": 3.53, "vol": 690723.0}, {"sym": "GPIL", "name": "Godawari Power And Ispat Limited", "close": 259.45, "chg": 3.49, "vol": 219924.0}, {"sym": "OLECTRA", "name": "Olectra Greentech Ltd", "close": 1035.55, "chg": 3.47, "vol": 328152.0}, {"sym": "ADANIENSOL", "name": "Adani Energy Solutions Ltd", "close": 1038.8, "chg": 3.33, "vol": 238838.0}, {"sym": "PTC", "name": "Ptc India Limited", "close": 165.57, "chg": 3.33, "vol": 180382.0}, {"sym": "FEDFINA", "name": "Fedbank Financial Services Ltd", "close": 135.55, "chg": 3.28, "vol": 83537.0}, {"sym": "JSWENERGY", "name": "Jsw Energy Limited", "close": 522.4, "chg": 3.26, "vol": 556270.0}, {"sym": "NATCOPHARM", "name": "Natco Pharma Limited", "close": 967.55, "chg": 3.14, "vol": 131982.0}, {"sym": "CESC", "name": "Cesc Limited", "close": 158.7, "chg": 3.04, "vol": 302692.0}, {"sym": "SYRMA", "name": "Syrma SGS Technology Ltd", "close": 780.85, "chg": 3.03, "vol": 201354.0}, {"sym": "VIKRAMSOLR", "name": "Vikram Solar Ltd", "close": 193.98, "chg": 3.02, "vol": 266654.0}, {"sym": "NITINSPIN", "name": "Nitin Spinners Limited", "close": 373.8, "chg": 2.95, "vol": 9447.0}, {"sym": "COALINDIA", "name": "Coal India Limited", "close": 467.5, "chg": 2.93, "vol": 2141763.0}, {"sym": "JINDALSAW", "name": "Jindal Saw Limited", "close": 194.89, "chg": 2.93, "vol": 581695.0}, {"sym": "PFC", "name": "Power Finance Corporation Limited", "close": 423.8, "chg": 2.9, "vol": 996807.0}, {"sym": "BLISSGVS", "name": "Bliss Gvs Pharma Limited", "close": 213.2, "chg": 2.9, "vol": 117225.0}, {"sym": "IREDA", "name": "Indian Renewable Energy Development Agency Ltd", "close": 119.96, "chg": 2.9, "vol": 2665966.0}, {"sym": "KTKBANK", "name": "The Karnataka Bank Limited", "close": 238.0, "chg": 2.89, "vol": 795282.0}, {"sym": "KSB", "name": "KSB Ltd", "close": 821.65, "chg": 2.73, "vol": 36787.0}, {"sym": "AUROPHARMA", "name": "Aurobindo Pharma Limited", "close": 1279.9, "chg": 2.6, "vol": 81260.0}, {"sym": "TDPOWERSYS", "name": "Td Power Systems Limited", "close": 855.0, "chg": 2.58, "vol": 91388.0}, {"sym": "JBMA", "name": "Jbm Auto Limited", "close": 563.05, "chg": 2.57, "vol": 1932411.0}, {"sym": "FACT", "name": "Fertilizers And Chemicals Travancore Limited", "close": 808.0, "chg": 2.54, "vol": 115608.0}, {"sym": "PNBHOUSING", "name": "Pnb Housing Finance Limited", "close": 806.95, "chg": 2.4, "vol": 90350.0}, {"sym": "CGPOWER", "name": "CG Power and Industrial Solutions Ltd", "close": 703.0, "chg": 2.37, "vol": 233926.0}, {"sym": "POWERGRID", "name": "Power Grid Corporation Of India Limited", "close": 303.55, "chg": 2.31, "vol": 901149.0}, {"sym": "JMFINANCIL", "name": "Jm Financial Limited", "close": 125.25, "chg": 2.27, "vol": 354610.0}, {"sym": "ADANIPOWER", "name": "Adani Power Limited", "close": 154.42, "chg": 2.26, "vol": 2920382.0}, {"sym": "KPIGREEN", "name": "KPI Green Energy Ltd", "close": 382.45, "chg": 2.22, "vol": 115899.0}, {"sym": "SAIL", "name": "Steel Authority Of India Limited", "close": 155.86, "chg": 2.17, "vol": 2164021.0}, {"sym": "DELHIVERY", "name": "Delhivery Ltd", "close": 422.05, "chg": 2.09, "vol": 117968.0}, {"sym": "NTPC", "name": "Ntpc Limited", "close": 381.8, "chg": 2.07, "vol": 1310768.0}, {"sym": "MAZDOCK", "name": "Mazagon Dock Shipbuilders Ltd", "close": 2408.8, "chg": 2.01, "vol": 220115.0}], "5": [{"sym": "DATAPATTNS", "name": "Data Patterns (India) Ltd", "close": 3323.0, "chg": 2.05, "vol": 138793.0}, {"sym": "WAAREEENER", "name": "Waaree Energies Ltd", "close": 3232.1, "chg": 2.41, "vol": 331324.0}, {"sym": "OLECTRA", "name": "Olectra Greentech Ltd", "close": 1040.9, "chg": 4.01, "vol": 199612.0}, {"sym": "ADANIENSOL", "name": "Adani Energy Solutions Ltd", "close": 1027.0, "chg": 2.16, "vol": 94576.0}, {"sym": "NATCOPHARM", "name": "Natco Pharma Limited", "close": 957.25, "chg": 2.05, "vol": 72845.0}, {"sym": "ABSLAMC", "name": "Aditya Birla Sun Life AMC Ltd", "close": 956.0, "chg": 2.42, "vol": 14517.0}, {"sym": "FINCABLES", "name": "Finolex Cables Limited", "close": 875.7, "chg": 3.05, "vol": 26274.0}, {"sym": "TDPOWERSYS", "name": "Td Power Systems Limited", "close": 854.55, "chg": 2.53, "vol": 65487.0}, {"sym": "FACT", "name": "Fertilizers And Chemicals Travancore Limited", "close": 814.15, "chg": 3.33, "vol": 88971.0}, {"sym": "SYRMA", "name": "Syrma SGS Technology Ltd", "close": 775.6, "chg": 2.34, "vol": 108776.0}, {"sym": "CGPOWER", "name": "CG Power and Industrial Solutions Ltd", "close": 704.45, "chg": 2.58, "vol": 145012.0}, {"sym": "JSWENERGY", "name": "Jsw Energy Limited", "close": 519.65, "chg": 2.72, "vol": 344843.0}, {"sym": "COALINDIA", "name": "Coal India Limited", "close": 464.8, "chg": 2.33, "vol": 1023367.0}, {"sym": "TATAPOWER", "name": "Tata Power Company Limited", "close": 411.0, "chg": 3.14, "vol": 2192953.0}, {"sym": "NITINSPIN", "name": "Nitin Spinners Limited", "close": 373.75, "chg": 2.93, "vol": 6157.0}, {"sym": "AGIIL", "name": "AGI Infra Ltd", "close": 316.0, "chg": 3.17, "vol": 403576.0}, {"sym": "TARIL", "name": "Transformers & Rectifiers India Ltd", "close": 287.35, "chg": 4.76, "vol": 817053.0}, {"sym": "BHEL", "name": "Bharat Heavy Electricals Limited", "close": 259.15, "chg": 2.94, "vol": 663566.0}, {"sym": "KTKBANK", "name": "The Karnataka Bank Limited", "close": 238.1, "chg": 2.93, "vol": 508482.0}, {"sym": "BLISSGVS", "name": "Bliss Gvs Pharma Limited", "close": 212.57, "chg": 2.6, "vol": 78909.0}, {"sym": "VIKRAMSOLR", "name": "Vikram Solar Ltd", "close": 194.15, "chg": 3.11, "vol": 187430.0}, {"sym": "JINDALSAW", "name": "Jindal Saw Limited", "close": 194.05, "chg": 2.48, "vol": 364854.0}, {"sym": "PTC", "name": "Ptc India Limited", "close": 164.45, "chg": 2.63, "vol": 81691.0}, {"sym": "CESC", "name": "Cesc Limited", "close": 157.71, "chg": 2.4, "vol": 177899.0}, {"sym": "ADANIPOWER", "name": "Adani Power Limited", "close": 154.09, "chg": 2.04, "vol": 1467951.0}, {"sym": "FEDFINA", "name": "Fedbank Financial Services Ltd", "close": 135.99, "chg": 3.61, "vol": 56879.0}, {"sym": "J&KBANK", "name": "The Jammu & Kashmir Bank Limited", "close": 122.05, "chg": 2.93, "vol": 356076.0}, {"sym": "IREDA", "name": "Indian Renewable Energy Development Agency Ltd", "close": 119.89, "chg": 2.84, "vol": 1132347.0}, {"sym": "PARADEEP", "name": "Paradeep Phosphates Ltd", "close": 116.26, "chg": 2.77, "vol": 255659.0}]};
+const INIT_COUNTS={"1": 39, "2": 7, "3": 34, "4": 45, "5": 29};
+
+const SC=['#056030','#1238c0','#a05800','#5010b0','#a01858'];
+const DEF_TIMES=['9:15 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM'];
+let scans={},delivData={},gainerData=[[],[],[],[]],gainerCounts=[0,0,0,0];
+let masterMatrix=[],matrixBuilt=false,activeGTab=0,sortKey='freq',sortDir=-1;
+let geminiKey='';
+
+const SMAP={TATAPOWER:'Energy',NLCINDIA:'Energy',NTPC:'Energy',POWERGRID:'Energy',ADANIPOWER:'Energy',JSWENERGY:'Energy',CESC:'Energy',PTC:'Energy',IREDA:'Energy',KPIGREEN:'Energy',VIKRAMSOLR:'Energy',ADANIENSOL:'Energy',WAAREEENER:'Energy',RELIANCE:'Energy',CHENNPETRO:'Energy',COALINDIA:'Metals',TATASTEEL:'Metals',SAIL:'Metals',JINDALSAW:'Metals',GPIL:'Metals',MOIL:'Metals',BHEL:'PSU',GMDCLTD:'PSU',FACT:'Chemicals',PARADEEP:'Chemicals',TARIL:'Cap Goods',CGPOWER:'Cap Goods',TDPOWERSYS:'Cap Goods',FINCABLES:'Cap Goods',PRECWIRE:'Cap Goods',KSB:'Cap Goods',AGIIL:'Infra','J&KBANK':'Banking',KTKBANK:'Banking',FEDFINA:'Banking',PNBHOUSING:'Banking',PFC:'Finance',JMFINANCIL:'Finance',ABSLAMC:'Finance',BLISSGVS:'Pharma',NATCOPHARM:'Pharma',AUROPHARMA:'Pharma',HAPPSTMNDS:'IT',DATAPATTNS:'IT',SYRMA:'IT',MAZDOCK:'Defence',OSWALPUMPS:'Engineering',BELRISE:'Auto Ancil',JBMA:'Auto',OLECTRA:'Auto',NITINSPIN:'Textiles',DELHIVERY:'Logistics'};
+const SCOLORS={Energy:'#d97706',Metals:'#6b7280',IT:'#2563eb',Banking:'#059669',Finance:'#7c3aed',Pharma:'#db2777','Cap Goods':'#0891b2',Infra:'#65a30d',PSU:'#9333ea',Defence:'#dc2626',Auto:'#ea580c',Chemicals:'#16a34a',Textiles:'#ca8a04',Logistics:'#0284c7','Auto Ancil':'#f59e0b',Engineering:'#10b981',Others:'#6b7280'};
+function getSec(s){return SMAP[s]||'Others';}
+function getSecColor(s){return SCOLORS[s]||'#6b7280';}
+
+function showTab(n,el){document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('tab-'+n).classList.add('on');el.classList.add('on');}
+
+function saveKeyLive(){const k=document.getElementById('geminiKey').value.trim();if(k){localStorage.setItem('ys_gemini_key',k);geminiKey=k;document.getElementById('keyStatus').textContent='✓ Key saved';}}
+function openModal(){document.getElementById('apiModal').classList.add('show');}
+function closeModal(){document.getElementById('apiModal').classList.remove('show');}
+function saveApiKey(){const k=document.getElementById('apiKeyInput').value.trim();if(!k){alert('Paste your API key first.');return;}localStorage.setItem('ys_gemini_key',k);geminiKey=k;document.getElementById('geminiKey').value=k;document.getElementById('keyStatus').textContent='✓ Key saved';closeModal();}
+
+// ── LIVE PRICES ─────────────────────────────────────────
+async function yf(sym){
+  try{
+    const u=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1m&range=1d`;
+    const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,{signal:AbortSignal.timeout(7000)});
+    const j=JSON.parse((await r.json()).contents);
+    return j.chart?.result?.[0]?.meta||null;
+  }catch(e){return null;}
+}
+function setTicker(vid,cid,p,pv){
+  const chg=pv>0?((p-pv)/pv*100):0;
+  const vel=document.getElementById('t'+vid),cel=document.getElementById('t'+cid);
+  if(vel) vel.textContent=p.toLocaleString('en-IN',{maximumFractionDigits:2});
+  if(cel){cel.textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';cel.className='ti-c '+(chg>0.1?'up':chg<-0.1?'dn':'fl');}
+  return chg;
+}
+async function fetchLivePrices(){
+  // Nifty 50
+  const m50=await yf('^NSEI');
+  if(m50) setTicker('n50','c50',m50.regularMarketPrice||0,m50.previousClose||0);
+  // Bank Nifty
+  const mbk=await yf('^NSEBANK');
+  if(mbk) setTicker('nbk','cbk',mbk.regularMarketPrice||0,mbk.previousClose||0);
+  // India VIX
+  const mvix=await yf('^INDIAVIX');
+  if(mvix){
+    const vp=mvix.regularMarketPrice||0,vpc=mvix.previousClose||0;
+    const vchg=vpc>0?((vp-vpc)/vpc*100):0;
+    const vel=document.getElementById('tnvix'),cel=document.getElementById('tcvix');
+    if(vel) vel.textContent=vp.toFixed(2);
+    if(cel){cel.textContent=(vchg>=0?'+':'')+vchg.toFixed(2)+'%';cel.className='ti-c '+(vchg>0.1?'dn':vchg<-0.1?'up':'fl');}
+    // Auto-update VIX level in sentiment
+    const vs=document.getElementById('s_vix');
+    if(vs) vs.value=vp<15?'Low (<15)':vp<=20?'Medium (15–20)':'High (>20)';
+  }
+  // GIFT Nifty 50 Index Futures (NIFTY1! continuous contract)
+  // Try multiple data source symbols — GIFT Nifty trades on NSE IFSC
+  let giftDone=false;
+  for(const gs of ['^NSEIFSC','NIFTY.NS','NFTY','IN=F','NIFTYF1.BO']){
+    const mg=await yf(gs);
+    if(mg&&mg.regularMarketPrice>10000){
+      const gchg=setTicker('ngift','cgift',mg.regularMarketPrice,mg.previousClose||mg.regularMarketPrice);
+      document.getElementById('giftChg').value=gchg.toFixed(2);
+      document.getElementById('giftDir').value=gchg>0.3?'bull':gchg<-0.3?'bear':'flat';
+      onSent();giftDone=true;break;
+    }
+  }
+  if(!giftDone&&m50){
+    // Fallback: GIFT Nifty ≈ Nifty spot (within 0.05% typically)
+    const gchg=setTicker('ngift','cgift',m50.regularMarketPrice||0,m50.previousClose||0);
+    document.getElementById('tcgift').textContent='~Nifty spot';
+    document.getElementById('giftChg').value=gchg.toFixed(2);
+    document.getElementById('giftDir').value=gchg>0.3?'bull':gchg<-0.3?'bear':'flat';
+    onSent();
+  }
+  document.getElementById('tickTime').textContent='↻ '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  setStatus('Live prices updated · '+new Date().toLocaleTimeString('en-IN'));
+}
+
+function buildScanSlots(){
+  document.getElementById('scansGrid').innerHTML=[1,2,3,4,5].map(i=>{
+    const cnt=INIT_COUNTS[String(i)]||0;
+    return `<div class="slot" style="--sclr:${SC[i-1]}">
+      <div class="slot-h"><span class="slot-n">SCAN ${i}</span>
+        <input class="slot-ti" id="t${i}" value="${DEF_TIMES[i-1]}" placeholder="9:15 AM"/>
+        <span class="slot-badge" id="b${i}">${cnt} stocks</span></div>
+      <textarea class="slot-ta" id="p${i}" placeholder="Paste Chartink CSV (tab or comma)&#10;Sr. | Stock Name | Symbol | Close | %Change | Volume&#10;&#10;1  AGI Infra Ltd  AGIIL  317  3.49%  77836"></textarea>
+      <div class="slot-f"><span class="slot-cnt" id="c${i}">${cnt>0?'Pre-loaded: '+cnt:'Empty'}</span>
+        <button class="rbtn" onclick="resetSlot(${i})">Reset</button>
+        <button class="pbtn" style="background:${SC[i-1]}" onclick="parseSlot(${i})">Parse</button></div>
+    </div>`;
+  }).join('');
+}
+
+(function init(){
+  buildScanSlots();
+  for(let i=1;i<=5;i++){scans[i]={};(INIT_SCAN_DATA[String(i)]||[]).forEach(r=>{scans[i][r.sym]={name:r.name,close:r.close,chg:r.chg,vol:r.vol};});}
+  INIT_MATRIX.forEach(r=>{delivData[r.sym]={dpct:r.dpct};});
+  const saved=localStorage.getItem('ys_gemini_key');
+  if(saved){geminiKey=saved;document.getElementById('geminiKey').value=saved;document.getElementById('keyStatus').textContent='✓ Key loaded';}
+  updateGainerUI();rebuild();startClock();
+  fetchLivePrices().catch(()=>{});
+  setInterval(()=>fetchLivePrices().catch(()=>{}),60000);
+  updateRulesProgress();
+})();
+
+function startClock(){
+  function tick(){
+    const now=new Date();
+    document.getElementById('liveTime').textContent=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('dateStr').textContent=now.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+    const h=now.getHours(),m=now.getMinutes(),open=h>9||(h===9&&m>=15),closed=h>15||(h===15&&m>=30);
+    const el=document.getElementById('mktBadge');
+    if(closed){el.textContent='● Closed';el.style.cssText='background:var(--rdbg);color:var(--red);border:1.5px solid var(--rdb);padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700';}
+    else if(!open){el.textContent='◐ Pre-market';el.style.cssText='background:var(--abbg);color:var(--amb);border:1.5px solid var(--abb);padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700';}
+    else{el.textContent='● Open';el.style.cssText='background:var(--gnbg);color:var(--grn);border:1.5px solid var(--gnb);padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700';}
+  }
+  tick();setInterval(tick,1000);
+}
+
+function parseRow(line){const d=line.includes('\t')?'\t':',';return line.split(d).map(c=>c.replace(/["\r\n]/g,'').trim());}
+
+function extractSymbols(raw){
+  if(!raw.trim()) return [];
+  // Format 1: __SYMBOL__ NSE page copy-paste
+  const re1=/__([A-Z][A-Z0-9&]{1,19})__/g;const ds=[];let m;
+  while((m=re1.exec(raw.toUpperCase()))!==null) ds.push(m[1]);
+  if(ds.length>=3) return [...new Set(ds)];
+  // Format 2: CSV/TSV first column
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  const SKIP=['SYMBOL','NAME','SR','OPEN','HIGH','LOW','PREV','LTP','VOLUME','VALUE','INDEX','SERIES','DATE','CHANGE'];
+  if(lines.length>1){
+    const cs=[];
+    for(const line of lines){
+      const cols=line.includes(',') ? line.split(',') : line.includes('\t') ? line.split('\t') : [line];
+      const s=(cols[0]||'').replace(/[^A-Z0-9&]/gi,'').toUpperCase().trim();
+      if(s.length>=2&&s.length<=20&&isNaN(s)&&!SKIP.includes(s)) cs.push(s);
+    }
+    if(cs.length>=2) return [...new Set(cs)];
+  }
+  // Format 3: plain space/comma
+  return [...new Set(raw.split(/[\n,\s]+/).map(s=>s.replace(/[^A-Z0-9&]/gi,'').toUpperCase()).filter(s=>s.length>=2&&s.length<=20&&isNaN(s)))];
+}
+
+function parseSlot(n){
+  const raw=document.getElementById('p'+n).value.trim();
+  if(!raw){document.getElementById('c'+n).textContent='Empty — paste data first';return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  let count=0;scans[n]={};
+  for(const line of lines){
+    const c=parseRow(line);if(c.length<5) continue;
+    const f0=c[0].toLowerCase().replace(/\s/g,'');
+    if(['sr.','sr','#','symbol','stockname'].includes(f0)||isNaN(c[0])) continue;
+    const sym=(c[2]||'').toUpperCase().replace(/[^A-Z0-9&]/g,'').trim();
+    if(!sym||sym.length<2||sym.length>20) continue;
+    const close=parseFloat(c[3])||0,chg=parseFloat((c[4]||'0').replace('%','').trim())||0,vol=parseFloat((c[5]||'0').replace(/,/g,'').trim())||0;
+    if(close===0) continue;
+    scans[n][sym]={name:(c[1]||sym).trim(),close,chg,vol};count++;
+  }
+  document.getElementById('b'+n).textContent=count+' stocks';
+  document.getElementById('c'+n).textContent=count>0?`✓ ${count} @ ${document.getElementById('t'+n).value}`:'⚠ Parse failed';
+  if(count===0) alert(`Slot ${n}: 0 stocks parsed.\nExpected: Sr. | Stock Name | Symbol | Close | %Change | Volume\nSample: ${(lines[1]||lines[0]||'').slice(0,120)}`);
+  setStatus('Slot '+n+': '+count+' stocks');
+}
+function parseAllSlots(){for(let i=1;i<=5;i++){if(document.getElementById('p'+i).value.trim()) parseSlot(i);}rebuild();}
+
+function dropFile(e,type){
+  e.preventDefault();document.getElementById(type==='nse'?'nseDZ':'gDZ').classList.remove('over');
+  const f=e.dataTransfer.files[0];if(!f) return;
+  const r=new FileReader();r.onload=ev=>{
+    if(type==='nse'){document.getElementById('nseTA').value=ev.target.result;parseNSE();}
+    else{document.getElementById('g'+activeGTab).value=ev.target.result;parseGainerTab();}
+  };r.readAsText(f);
+}
+function loadFile(e,type){
+  const f=e.target.files[0];if(!f) return;
+  const r=new FileReader();r.onload=ev=>{
+    if(type==='nse'){document.getElementById('nseTA').value=ev.target.result;parseNSE();}
+    else{document.getElementById('g'+activeGTab).value=ev.target.result;parseGainerTab();}
+  };r.readAsText(f);
+}
+
+function resetSlot(n){scans[n]={};document.getElementById('p'+n).value='';document.getElementById('b'+n).textContent='0 stocks';document.getElementById('c'+n).textContent='Empty';matrixBuilt=false;rebuild();}
+function resetAllScans(){if(!confirm('Reset all 5 scans?'))return;for(let i=1;i<=5;i++)resetSlot(i);}
+function resetNSE(){if(!confirm('Clear NSE data?'))return;delivData={};document.getElementById('nseTA').value='';document.getElementById('nseStatus').textContent='Cleared';document.getElementById('nseStatus').style.color='var(--red)';rebuild();}
+function resetGainerTab(){gainerData[activeGTab]=[];gainerCounts[activeGTab]=0;document.getElementById('g'+activeGTab).value='';updateGainerUI();rebuild();}
+function resetAllGainers(){if(!confirm('Reset all gainer snapshots?'))return;gainerData=[[],[],[],[]];gainerCounts=[0,0,0,0];for(let i=0;i<4;i++) document.getElementById('g'+i).value='';updateGainerUI();rebuild();}
+function resetTabDash(){resetAllScans();resetAllGainers();resetNSE();}
+function resetGuide(){document.querySelectorAll('.rcheck').forEach(el=>{el.classList.remove('ck');const t=el.nextElementSibling;if(t) t.classList.remove('ck');});updateRulesProgress();}
+function resetAll(){
+  if(!confirm('Reset entire dashboard for new day?\nClears all scans, gainers, NSE data, filters, and rule checkboxes.')) return;
+  for(let i=1;i<=5;i++){scans[i]={};document.getElementById('p'+i).value='';document.getElementById('b'+i).textContent='0 stocks';document.getElementById('c'+i).textContent='Empty';document.getElementById('t'+i).value=DEF_TIMES[i-1];}
+  delivData={};document.getElementById('nseTA').value='';document.getElementById('nseStatus').textContent='No data';document.getElementById('nseStatus').style.color='var(--red)';
+  gainerData=[[],[],[],[]];gainerCounts=[0,0,0,0];
+  for(let i=0;i<4;i++){document.getElementById('g'+i).value='';document.getElementById('gt'+i).value=['9:30 AM','10:00 AM','10:30 AM','11:00 AM'][i];}
+  ['s_nifty','s_mood','s_vix','s_phase'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  document.getElementById('f_chg').value=2;document.getElementById('f_vol').value=0.5;document.getElementById('f_freq').value=2;document.getElementById('f_del').value=0;
+  document.getElementById('giftDir').selectedIndex=0;document.getElementById('giftChg').value=0;
+  masterMatrix=[];matrixBuilt=false;
+  document.getElementById('matBody').innerHTML='<tr><td colspan="14" style="text-align:center;padding:36px;color:var(--t3);font-size:14px">Reset. Paste new scan data.</td></tr>';
+  document.getElementById('picksGrid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3)">No data yet.</div>';
+  document.getElementById('picksMini').innerHTML='<div style="padding:14px;color:var(--t3);font-size:13px">Click ▶ Build to see picks</div>';
+  document.getElementById('statsRow').innerHTML='';document.getElementById('secSummary').style.display='none';
+  document.getElementById('aiBrief').innerHTML='<span style="color:var(--t4);font-style:italic">Dashboard reset.</span>';
+  resetGuide();updateGainerUI();onSent();
+  setStatus('Reset for new day · '+new Date().toLocaleDateString('en-IN'));
+}
+
+function parseNSE(){
+  const raw=document.getElementById('nseTA').value.trim();if(!raw){alert('No data.');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  const hdr=parseRow(lines[0]).map(h=>h.toUpperCase().replace(/\s/g,''));
+  const iSym=hdr.findIndex(h=>h.includes('SYMBOL')),iSer=hdr.findIndex(h=>h.includes('SERIES'));
+  const iDpct=hdr.findIndex(h=>h.includes('DELIV_PER')||h.includes('%DLY')||h.includes('DELIVPER'));
+  if(iSym<0||iDpct<0){alert('Cannot find SYMBOL or DELIV_PER columns.\nCheck CSV is NSE bhavcopy format.');return;}
+  let count=0;delivData={};
+  for(let i=1;i<lines.length;i++){const c=parseRow(lines[i]);if(iSer>=0&&c[iSer]!=='EQ')continue;const sym=(c[iSym]||'').toUpperCase().trim();if(!sym)continue;delivData[sym]={dpct:parseFloat(c[iDpct])||0};count++;}
+  document.getElementById('nseStatus').textContent=`✓ ${count} EQ stocks loaded`;document.getElementById('nseStatus').style.color='var(--grn)';
+  setStatus('NSE: '+count+' EQ stocks');rebuild();
+}
+
+function gTab(i,el){activeGTab=i;document.querySelectorAll('.gtab').forEach(t=>t.classList.remove('on'));el.classList.add('on');for(let j=0;j<4;j++) document.getElementById('g'+j).style.display=j===i?'block':'none';document.getElementById('gStatus').textContent=document.getElementById('gt'+i).value+' — '+gainerCounts[i]+' symbols';}
+
+function parseGainerTab(){
+  const raw=document.getElementById('g'+activeGTab).value.trim();
+  if(!raw){alert('No data. Paste symbols or drop a file.');return;}
+  const syms=extractSymbols(raw);
+  gainerData[activeGTab]=syms;gainerCounts[activeGTab]=syms.length;updateGainerUI();
+  setStatus(document.getElementById('gt'+activeGTab).value+': '+syms.length+' symbols extracted');
+  rebuild();
+}
+function updateGainerUI(){
+  for(let i=0;i<4;i++){const cnt=gainerCounts[i];const el=document.getElementById('gc'+i);if(el){el.textContent=cnt;el.style.display=cnt>0?'inline':'none';}document.getElementById('gtab'+i)?.classList.toggle('has',cnt>0);}
+  document.getElementById('gStatus').textContent=document.getElementById('gt'+activeGTab).value+' — '+gainerCounts[activeGTab]+' symbols';
+}
+
+function onSent(){
+  const nifty=document.getElementById('s_nifty').value,mood=document.getElementById('s_mood').value,vix=document.getElementById('s_vix').value;
+  const gdir=document.getElementById('giftDir').value,gchg=parseFloat(document.getElementById('giftChg').value)||0;
+  const el=document.getElementById('sentScore');
+  let cls='sp-bull',txt='Bullish · High Confidence';
+  if(nifty.includes('Bear')||mood==='Panic'||gdir==='bear'||gchg<-0.5){txt='Bearish · Reduce Size 50%';cls='sp-bear';document.getElementById('f_chg').value=3;}
+  else if(mood==='Choppy'||nifty.includes('Side')||vix.includes('High')||gdir==='flat'||gchg<0){txt='Choppy · Be Very Selective';cls='sp-side';}
+  else if(vix.includes('Medium')){txt='Moderate · Normal Size';cls='sp-bull';}
+  el.textContent=txt;el.className='sig-pill '+cls;rebuild();
+}
+
+function copySym(sym,btn){
+  const cb=()=>{btn.textContent='✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent='⧉';btn.classList.remove('ok');},1300);};
+  if(navigator.clipboard) navigator.clipboard.writeText(sym).then(cb);
+  else{const t=document.createElement('textarea');t.value=sym;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);cb();}
+}
+
+// CHECKBOXES
+function toggleCheck(el){el.classList.toggle('ck');const t=el.nextElementSibling;if(t&&t.classList.contains('rtxt')) t.classList.toggle('ck',el.classList.contains('ck'));updateRulesProgress();}
+function updateRulesProgress(){const all=document.querySelectorAll('.rcheck').length,done=document.querySelectorAll('.rcheck.ck').length,pct=all>0?Math.round(done/all*100):0;const bar=document.getElementById('rulesBar');if(bar) bar.style.width=pct+'%';const num=document.getElementById('rulesNum');if(num) num.textContent=done+' / '+all+' confirmed';}
+
+function buildMatrix(){
+  const gfm={};gainerData.flat().forEach(s=>{gfm[s]=(gfm[s]||0)+1;});
+  const allS=new Set();for(let i=1;i<=5;i++) Object.keys(scans[i]).forEach(s=>allS.add(s));
+  masterMatrix=[];
+  allS.forEach(sym=>{
+    const inS=[1,2,3,4,5].map(i=>scans[i][sym]?1:0),freq=inS.reduce((a,b)=>a+b,0);
+    if(freq===0) return;
+    const rows=[1,2,3,4,5].filter(i=>scans[i][sym]).map(i=>scans[i][sym]);
+    const avgChg=rows.reduce((a,r)=>a+r.chg,0)/rows.length,avgVol=rows.reduce((a,r)=>a+r.vol,0)/rows.length;
+    const last=rows[rows.length-1],dpct=(delivData[sym]||{dpct:0}).dpct,gf=gfm[sym]||0;
+    const score=+(freq*20+avgChg*3+Math.min(avgVol/1e5,25)*0.5+dpct*0.4+gf*8).toFixed(1);
+    masterMatrix.push({sym,name:last.name,close:last.close,chg:+avgChg.toFixed(2),vol:+avgVol.toFixed(0),freq,dpct,gfreq:gf,score,scans:inS,sector:getSec(sym)});
+  });
+  matrixBuilt=true;
+}
+
+function sortCol(key){if(sortKey===key) sortDir*=-1;else{sortKey=key;sortDir=-1;}document.getElementById('sortBy').value=key;renderMatrix();}
+
+function renderMatrix(){
+  if(!matrixBuilt){
+    document.getElementById('matBody').innerHTML='<tr><td colspan="14" style="text-align:center;padding:36px;color:var(--t3);font-size:14px">Click ▶ Build to calculate</td></tr>';
+    document.getElementById('picksGrid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3)">Click Build to see picks.</div>';
+    document.getElementById('picksMini').innerHTML='<div style="padding:14px;color:var(--t3);font-size:13px">Click ▶ Build to see picks</div>';
+    document.getElementById('statsRow').innerHTML='';document.getElementById('secSummary').style.display='none';return;
+  }
+  const minChg=parseFloat(document.getElementById('f_chg').value)||0,minVol=(parseFloat(document.getElementById('f_vol').value)||0)*1e5,minFreq=parseInt(document.getElementById('f_freq').value)||1,minDel=parseFloat(document.getElementById('f_del').value)||0;
+  const sk=document.getElementById('sortBy').value||sortKey;
+  let data=[...masterMatrix].filter(r=>r.chg>=minChg&&r.vol>=minVol&&r.freq>=minFreq&&r.dpct>=minDel);
+  const fns={freq:(a,b)=>b.freq-a.freq||b.score-a.score,score:(a,b)=>b.score-a.score,chg:(a,b)=>b.chg-a.chg,del:(a,b)=>b.dpct-a.dpct,vol:(a,b)=>b.vol-a.vol,sym:(a,b)=>a.sym.localeCompare(b.sym)};
+  data.sort(fns[sk]||fns.freq);
+  document.getElementById('statsRow').innerHTML=`
+    <div class="ss"><div class="ss-l">Unique stocks</div><div class="ss-v">${masterMatrix.length}</div></div>
+    <div class="ss"><div class="ss-l">Pass filters</div><div class="ss-v g">${data.length}</div></div>
+    <div class="ss"><div class="ss-l">Freq = 5</div><div class="ss-v gold">${data.filter(r=>r.freq===5).length}</div></div>
+    <div class="ss"><div class="ss-l">Freq ≥ 4</div><div class="ss-v g">${data.filter(r=>r.freq>=4).length}</div></div>
+    <div class="ss"><div class="ss-l">In gainers</div><div class="ss-v a">${data.filter(r=>r.gfreq>0).length}</div></div>
+    <div class="ss"><div class="ss-l">Delivery ≥50%</div><div class="ss-v b">${data.filter(r=>r.dpct>=50).length}</div></div>`;
+  const tbody=document.getElementById('matBody');
+  if(data.length===0){tbody.innerHTML=`<tr><td colspan="14" style="text-align:center;padding:36px;color:var(--t3);font-size:14px">No stocks match filters — reduce Min % Change or Min Frequency.</td></tr>`;buildPicks([]);return;}
+  tbody.innerHTML=data.map(r=>{
+    const fc=r.freq===5?'f5':r.freq===4?'f4':r.freq===3?'f3':r.freq===2?'f2':'f1';
+    const cc=r.chg>=0?'g':'r',dc=r.dpct>=60?'g':r.dpct>=40?'a':'r',sc2=r.score>=120?'gold':r.score>=80?'g':'b';
+    const gb=r.gfreq>0?`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--abbg);color:var(--amb);border:1px solid var(--abb)">${r.gfreq}×</span>`:`<span style="color:var(--t4)">—</span>`;
+    const dots=r.scans.map((v,j)=>`<span class="fd ${v?'on':'off'}" style="${v?'background:'+SC[j]+';color:'+SC[j]:''}"></span>`).join('');
+    return `<tr>
+      <td class="tl" style="padding-left:14px"><div class="tsym">${r.sym}<button class="cpbtn" onclick="copySym('${r.sym}',this)">⧉</button></div></td>
+      <td class="tl tname" title="${r.name}">${r.name}</td>
+      <td>₹${r.close.toFixed(2)}</td><td class="${cc}">${r.chg>=0?'+':''}${r.chg.toFixed(2)}%</td>
+      <td>${(r.vol/1e5).toFixed(1)}L</td>
+      ${r.scans.map((v,j)=>`<td style="color:${v?SC[j]:'var(--t4)'};font-size:14px;font-weight:700">${v?'●':'○'}</td>`).join('')}
+      <td><span class="fb ${fc}">${r.freq}</span></td><td>${gb}</td>
+      <td class="${dc}">${r.dpct>0?r.dpct.toFixed(1)+'%':'—'}</td><td class="${sc2}">${r.score}</td>
+    </tr>`;
+  }).join('');
+  buildPicks(data);
+  setStatus(`Matrix: ${data.length} stocks · ${data.filter(r=>r.freq>=4).length} high freq · ${data.filter(r=>r.gfreq>0).length} in gainers`);
+}
+
+function buildPicks(filtered){
+  if(!matrixBuilt||!filtered||filtered.length===0){
+    document.getElementById('picksGrid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--t3);font-size:14px">No stocks pass filters.</div>';
+    document.getElementById('picksMini').innerHTML='<div style="padding:14px;color:var(--t3);font-size:13px">No stocks pass filters.</div>';
+    document.getElementById('secSummary').style.display='none';return;
+  }
+  const data=filtered.slice().sort((a,b)=>b.score-a.score).slice(0,5);
+  const rcls=['r1','r2','r3','',''],rcol=['#885000','#1238c0','#077840','#6b7490','#6b7490'],rlbl=['#1','#2','#3','#4','#5'];
+
+  function makePickCard(r,i,mini){
+    const dc=r.chg>=0?'var(--grn)':'var(--red)',dlc=r.dpct>=50?'var(--grn)':r.dpct>=30?'var(--amb)':'var(--red)';
+    const col=getSecColor(r.sector);
+    const dotSize=mini?'width:10px;height:10px;':'';
+    const dots=r.scans.map((v,j)=>`<span class="fd ${v?'on':'off'}" style="${dotSize}${v?'background:'+SC[j]+';color:'+SC[j]:''}"></span>`).join('');
+    if(mini) return `<div class="pc ${rcls[i]}" style="padding:11px 13px">
+      <div class="pc-t"><div class="pc-sym" style="font-size:15px">${r.sym}<button class="cpbtn" onclick="copySym('${r.sym}',this)">⧉</button></div><span class="pc-rk" style="color:${rcol[i]}">${rlbl[i]}</span></div>
+      <div class="pc-nm">${r.name}</div>
+      <span class="pc-sec" style="background:${col}18;color:${col};border:1px solid ${col}40;font-size:10px;padding:2px 8px">${r.sector}</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;font-family:var(--mono);font-weight:600;margin:5px 0">
+        <span style="color:${dc}">${r.chg>=0?'+':''}${r.chg.toFixed(2)}%</span>
+        <span style="color:${rcol[i]}">${r.freq}/5</span>
+        <span style="color:var(--blu)">${r.score}</span>
+        ${r.dpct>0?`<span style="color:var(--grn)">${r.dpct.toFixed(0)}%del</span>`:''}
+      </div>
+      <div class="pc-dots">${dots}</div>
+    </div>`;
+    return `<div class="pc ${rcls[i]}">
+      <div class="pc-t"><div class="pc-sym">${r.sym}<button class="cpbtn" onclick="copySym('${r.sym}',this)">⧉</button></div><span class="pc-rk" style="color:${rcol[i]}">${rlbl[i]}</span></div>
+      <div class="pc-nm" title="${r.name}">${r.name}</div>
+      <span class="pc-sec" style="background:${col}18;color:${col};border:1px solid ${col}40">${r.sector}</span>
+      <div class="pc-stats">
+        <div class="ps"><div class="ps-l">Change</div><div class="ps-v" style="color:${dc}">${r.chg>=0?'+':''}${r.chg.toFixed(2)}%</div></div>
+        <div class="ps"><div class="ps-l">Freq</div><div class="ps-v" style="color:${rcol[i]}">${r.freq}/5</div></div>
+        <div class="ps"><div class="ps-l">Delivery</div><div class="ps-v" style="color:${dlc}">${r.dpct>0?r.dpct.toFixed(1)+'%':'—'}</div></div>
+        <div class="ps"><div class="ps-l">Score</div><div class="ps-v b">${r.score}</div></div>
+      </div>
+      <div class="pc-dots">${dots}</div>
+      ${r.gfreq>0?`<div style="margin-top:7px;font-size:12px;font-weight:700;color:var(--amb)">★ Gainers: ${r.gfreq}× confirmed</div>`:''}
+    </div>`;
+  }
+
+  document.getElementById('picksGrid').innerHTML=data.map((r,i)=>makePickCard(r,i,false)).join('');
+  document.getElementById('picksMini').innerHTML=data.map((r,i)=>makePickCard(r,i,true)).join('');
+
+  const secCounts={};data.forEach(r=>{secCounts[r.sector]=(secCounts[r.sector]||0)+1;});
+  document.getElementById('secCounts').innerHTML=Object.entries(secCounts).sort((a,b)=>b[1]-a[1]).map(([sec,cnt])=>{
+    const col=getSecColor(sec);
+    return `<div class="sec-chip" style="background:${col}12;border-color:${col}40"><span class="sec-dot" style="background:${col}"></span><span style="color:var(--t2);font-weight:600">${sec}</span><span style="font-size:16px;font-weight:700;font-family:var(--mono);color:${col}">${cnt}</span></div>`;
+  }).join('');
+  document.getElementById('secSummary').style.display='flex';
+}
+
+// AI BRIEF — Gemini with fallback across multiple versions/models
+function checkAndRunAI(){if(!geminiKey){openModal();return;}showTab('ai',document.querySelectorAll('.tab')[2]);runAI('full');}
+
+async function runAI(mode){
+  if(!geminiKey){openModal();return;}
+  if(!matrixBuilt||masterMatrix.length===0){document.getElementById('aiBrief').textContent='Build dashboard first (▶ Build), then run AI brief.';return;}
+  const minChg=parseFloat(document.getElementById('f_chg').value)||0,minVol=(parseFloat(document.getElementById('f_vol').value)||0)*1e5,minFreq=parseInt(document.getElementById('f_freq').value)||1,minDel=parseFloat(document.getElementById('f_del').value)||0;
+  const filtered=masterMatrix.filter(r=>r.chg>=minChg&&r.vol>=minVol&&r.freq>=minFreq&&r.dpct>=minDel).sort((a,b)=>b.score-a.score).slice(0,5);
+  const nifty=document.getElementById('s_nifty').value,mood=document.getElementById('s_mood').value,vix=document.getElementById('s_vix').value,phase=document.getElementById('s_phase').value;
+  const signal=document.getElementById('sentScore').textContent;
+  const gdir=document.getElementById('giftDir').value,gchg=document.getElementById('giftChg').value;
+  const picksText=filtered.map((r,i)=>`${i+1}. ${r.sym} (${r.name}) — Sector: ${r.sector}, Freq: ${r.freq}/5 scans, Chg: +${r.chg}%, Delivery: ${r.dpct>0?r.dpct.toFixed(1)+'%':'unknown'}, Score: ${r.score}${r.gfreq>0?`, Live gainers: ${r.gfreq}× confirmed`:''}`).join('\n');
+  const prompts={
+    full:`You are an expert NSE intraday trader. Analyze this scan dashboard data and give a sharp, actionable brief.
+
+MARKET CONDITIONS:
+- GIFT Nifty 50 Futures: ${gdir==='bull'?'Bullish':'Bearish/Flat'}, Gap: ${gchg}%
+- Nifty Direction: ${nifty} | Mood: ${mood} | VIX: ${vix} | Phase: ${phase}
+- Signal: ${signal}
+
+TOP ${filtered.length} STOCKS (ranked by score):
+${picksText||'No stocks pass current filters.'}
+
+Provide this exact structure:
+1. MARKET CONTEXT (2-3 lines: how aggressive or cautious today and why)
+2. STOCK ANALYSIS (for each stock: entry condition, entry zone hint, SL level, target, one specific caution)
+3. DO TODAY (3 specific action points)
+4. AVOID TODAY (3 specific things to skip)
+5. ONE-LINE SUMMARY
+
+Rules: Be specific to NSE Indian market. Use ₹. No generic advice. Pullback entries only, never breakout chasing. Under 400 words.`,
+    quick:`Quick risk check for NSE intraday:\nMarket: ${nifty}, ${mood}, VIX: ${vix}, GIFT Nifty gap: ${gchg}%\nStocks: ${filtered.map(r=>r.sym).join(', ')||'None'}\n\nGive: 1) Risk level (Low/Medium/High) and why. 2) Position size to use today. 3) Top 3 risks to watch. Under 150 words.`,
+    entry:`Entry conditions for NSE intraday today:\nMarket: ${nifty} ${mood}, Phase: ${phase}\n${picksText||'No stocks.'}\n\nFor each stock: exact entry trigger (candlestick + timeframe + level), SL placement, time window for entry. Specific to NSE intraday rules. Under 250 words.`,
+    caution:`Caution analysis for NSE intraday today:\nMarket: ${nifty}, ${mood}, VIX: ${vix}, GIFT gap: ${gchg}%\nStocks: ${filtered.map(r=>`${r.sym}(del:${r.dpct.toFixed(0)}%,freq:${r.freq})`).join(', ')||'None'}\n\nList 5 specific cautions — which stocks have red flags and why. Direct language only. Under 200 words.`
+  };
+  const brief=document.getElementById('aiBrief'),spin=document.getElementById('aiSpin');
+  brief.innerHTML='<span style="color:var(--t4);font-style:italic"><span class="spin"></span> Analyzing with Gemini AI...</span>';
+  spin.style.display='inline-block';
+  // Try every combination of API version + model
+  // Official Google AI REST API — v1beta, auth via x-goog-api-key header
+  const MODELS_TO_TRY=['gemini-2.0-flash','gemini-2.5-flash','gemini-1.5-flash','gemini-2.0-flash-lite'];
+  let text='',lastErr='',usedModel='';
+  for(const mdl of MODELS_TO_TRY){
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),15000);
+      const r2=await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${mdl}:generateContent`,
+        {
+          method:'POST',
+          signal:ctrl.signal,
+          headers:{'Content-Type':'application/json','x-goog-api-key':geminiKey},
+          body:JSON.stringify({
+            contents:[{parts:[{text:prompts[mode]}]}],
+            generationConfig:{temperature:0.7,maxOutputTokens:1200}
+          })
+        }
+      );
+      clearTimeout(tid);
+      const j2=await r2.json();
+      if(j2.error){
+        lastErr=`[${mdl}] `+j2.error.message;
+        if(j2.error.code===404||j2.error.message.includes('not found')||j2.error.message.includes('not supported')) continue;
+        throw new Error(j2.error.message);
+      }
+      text=j2.candidates?.[0]?.content?.parts?.[0]?.text||'No response';
+      usedModel=mdl;
+      break;
+    }catch(e2){
+      lastErr=e2.message||String(e2);
+      if(lastErr.includes('not found')||lastErr.includes('not supported')||lastErr.includes('404')||lastErr.includes('AbortError')||lastErr.includes('abort')) continue;
+      throw e2;
+    }
+  }
+  brief.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/^(\d+\..+)$/gm,'<b>$1</b>').replace(/⚠/g,'<span style="color:var(--amb)">⚠</span>').replace(/✅/g,'<span style="color:var(--grn)">✓</span>').replace(/❌/g,'<span style="color:var(--red)">✗</span>');
+  document.getElementById('sbar').textContent=`AI brief generated using ${usedModel}`;
+}
+
+function exportCSV(){
+  if(!matrixBuilt||masterMatrix.length===0){alert('Build dashboard first.');return;}
+  const rows=[],minChg=parseFloat(document.getElementById('f_chg').value)||0,minVol=(parseFloat(document.getElementById('f_vol').value)||0)*1e5,minFreq=parseInt(document.getElementById('f_freq').value)||1,minDel=parseFloat(document.getElementById('f_del').value)||0;
+  rows.push(['=== YS INTRADAY SCAN ==='],['Date',new Date().toLocaleDateString('en-IN')],[]);
+  rows.push(['=== MARKET SENTIMENT ==='],['GIFT Direction',document.getElementById('giftDir').value],['GIFT Gap%',document.getElementById('giftChg').value+'%'],['Nifty',document.getElementById('s_nifty').value],['Mood',document.getElementById('s_mood').value],['VIX',document.getElementById('s_vix').value],['Phase',document.getElementById('s_phase').value],['Signal',document.getElementById('sentScore').textContent],[]);
+  for(let i=1;i<=5;i++) rows.push([`Scan ${i} Time`,document.getElementById('t'+i).value]);
+  rows.push([]);
+  const filtered=masterMatrix.filter(r=>r.chg>=minChg&&r.vol>=minVol&&r.freq>=minFreq&&r.dpct>=minDel).sort((a,b)=>b.score-a.score);
+  rows.push(['=== BEST 5 STOCKS ==='],['Rank','Symbol','Name','Sector','Close','Chg%','Vol(L)','Freq','Delivery%','Score','Gainers']);
+  filtered.slice(0,5).forEach((r,i)=>rows.push([i+1,r.sym,`"${r.name}"`,r.sector,r.close,r.chg,(r.vol/1e5).toFixed(1),r.freq+'/5',r.dpct>0?r.dpct.toFixed(1)+'%':'—',r.score,r.gfreq||0]));
+  rows.push([]);
+  rows.push(['=== FULL MATRIX ==='],['Symbol','Name','Sector','Close','Chg%','Vol(L)','S1','S2','S3','S4','S5','Freq','Delivery%','Gainers','Score']);
+  [...masterMatrix].sort((a,b)=>b.score-a.score).forEach(r=>rows.push([r.sym,`"${r.name}"`,r.sector,r.close,r.chg,(r.vol/1e5).toFixed(1),...r.scans,r.freq,r.dpct>0?r.dpct.toFixed(1):'—',r.gfreq||0,r.score]));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download='YS_IntraDay_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  setStatus('CSV exported: sentiment + best 5 + '+masterMatrix.length+' stocks');
+}
+
+function showPrompt(){
+  if(!matrixBuilt||masterMatrix.length===0){alert('Build dashboard first.');return;}
+  const minChg=parseFloat(document.getElementById('f_chg').value)||0,minVol=(parseFloat(document.getElementById('f_vol').value)||0)*1e5,minFreq=parseInt(document.getElementById('f_freq').value)||1,minDel=parseFloat(document.getElementById('f_del').value)||0;
+  const filtered=masterMatrix.filter(r=>r.chg>=minChg&&r.vol>=minVol&&r.freq>=minFreq&&r.dpct>=minDel).sort((a,b)=>b.score-a.score).slice(0,5);
+  const picksText=filtered.map((r,i)=>`${i+1}. ${r.sym} — Sector:${r.sector} Freq:${r.freq}/5 Chg:+${r.chg}% Del:${r.dpct>0?r.dpct.toFixed(1)+'%':'?'} Score:${r.score}${r.gfreq>0?` Gainers:${r.gfreq}x`:''}`).join('\n');
+  const preview=`MODEL: gemini-2.0-flash (v1beta)\nKEY: ${geminiKey?geminiKey.slice(0,12)+'...':'NOT SET'}\n\nPROMPT BEING SENT:\n\nMarket: ${document.getElementById('s_nifty').value}, ${document.getElementById('s_mood').value}, VIX:${document.getElementById('s_vix').value}\nGIFT Nifty: ${document.getElementById('giftDir').value} Gap:${document.getElementById('giftChg').value}%\nSignal: ${document.getElementById('sentScore').textContent}\n\nTOP ${filtered.length} STOCKS:\n${picksText||'None — check filters'}\n\nTest this in AI Studio:\nhttps://aistudio.google.com/prompts/new_chat`;
+  const el=document.getElementById('promptPreview');
+  el.textContent=preview;
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+function rebuild(){buildMatrix();renderMatrix();const btn=document.getElementById('rebuildBtn');btn.classList.add('ok');btn.textContent='✓ Built';setTimeout(()=>{btn.classList.remove('ok');btn.textContent='▶ Build';},1800);}
+function setStatus(msg){document.getElementById('sbar').textContent=msg;}
+</script>
+</body>
+</html>
