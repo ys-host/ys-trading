@@ -1730,14 +1730,24 @@ function getBullF() {
   var mv = (parseFloat(document.getElementById('bull_vol').value) || 0) * 1e5;
   var mf = parseInt(document.getElementById('bull_freq').value) || 1;
   var md = parseFloat(document.getElementById('bull_del').value) || 0;
-  return D.bullMtx.filter(function (r) { return r.chg >= mc && r.vol >= mv && r.freq_count >= mf && r.delivery_pct >= md; }).slice(0, 5);
+  return D.bullMtx.filter(function (r) {
+    var chg = r.chg || r.change_pct || 0;
+    var vol = r.vol || r.volume || 0;
+    var del = r.delivery_pct || r.dpct || 0;
+    return chg >= mc && vol >= mv && (r.freq_count || 0) >= mf && del >= md;
+  }).slice(0, 5);
 }
 function getBearF() {
   var mc = parseFloat(document.getElementById('bear_chg').value) || 0;
   var mv = (parseFloat(document.getElementById('bear_vol').value) || 0) * 1e5;
   var mf = parseInt(document.getElementById('bear_freq').value) || 1;
   var md = parseFloat(document.getElementById('bear_del').value) || 0;
-  return D.bearMtx.filter(function (r) { return r.chg <= mc && r.vol >= mv && r.freq_count >= mf && r.delivery_pct >= md; }).slice(0, 5);
+  return D.bearMtx.filter(function (r) {
+    var chg = r.chg || r.change_pct || 0;
+    var vol = r.vol || r.volume || 0;
+    var del = r.delivery_pct || r.dpct || 0;
+    return chg <= mc && vol >= mv && (r.freq_count || 0) >= mf && del >= md;
+  }).slice(0, 5);
 }
 
 // ════════════════════════════════════════════════════════════════
