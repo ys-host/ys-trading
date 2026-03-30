@@ -3,14 +3,14 @@
     {
       "date": "2026-03-30",
       "is_trading_day": true,
-      "scan_runs": 0,
-      "unique_stocks_s1": 0,
-      "unique_stocks_s2": 0,
+      "scan_runs": 23,
+      "unique_stocks_s1": 6,
+      "unique_stocks_s2": 3,
       "trades_today": 0,
       "day_pnl": 0,
-      "backed_up_at": "2026-03-30T09:57:08.373752+05:30"
+      "backed_up_at": "2026-03-30T20:21:45.243879+05:30"
     }
   ],
-  "last_updated": "2026-03-30T09:57:08.373763+05:30",
+  "last_updated": "2026-03-30T20:21:45.243892+05:30",
   "total_backups": 1
 }
