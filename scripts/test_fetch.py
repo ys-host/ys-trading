@@ -244,5 +244,9 @@ for name, result in results.items():
     icon = '✅' if status == 'SUCCESS' else '❌'
     print(f"  {icon}  {name:20} → {status}")
 
+# Save results to file for artifact upload
+with open('fetch_results.json', 'w') as f:
+    json.dump(results, f, indent=2)
+
 print("\nFull results (copy and send back):")
 print(json.dumps(results, indent=2))
