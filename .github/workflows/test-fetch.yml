@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════════
+# YS TRADING — FETCH TEST (Run manually from GitHub Actions)
+# File: .github/workflows/test-fetch.yml
+# Go to GitHub repo → Actions → Test Server Fetch → Run workflow
+# ═══════════════════════════════════════════════════════════════
+
+name: Test Server-Side Fetch
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run fetch test
+        run: python scripts/test_fetch.py
+
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: fetch-test-results
+          path: fetch_results.json
+        continue-on-error: true
