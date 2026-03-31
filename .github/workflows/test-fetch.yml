@@ -28,7 +28,7 @@ jobs:
         run: python scripts/test_fetch.py
 
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: fetch-test-results
           path: fetch_results.json
