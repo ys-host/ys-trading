@@ -1,0 +1,86 @@
+# YS TRADING — .github/workflows/test_angel.yml  (FIXED v2)
+#
+# WHAT WAS WRONG:
+#   Old workflow: cd scripts && python test_angel.py
+#   Python couldn't find angel_api.py even though it's in the same folder.
+#   Fix: set PYTHONPATH to point at the scripts/ directory explicitly.
+#
+# HOW TO RUN:
+#   GitHub repo → Actions tab → "Test Angel One API" → Run workflow
+
+name: Test Angel One API
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/angel_api.py'
+      - 'scripts/symbol_master.py'
+      - 'scripts/test_angel.py'
+      - '.github/workflows/test_angel.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install smartapi-python pyotp requests logzero --quiet
+
+      - name: Show runner public IP
+        run: |
+          echo "GitHub Actions runner IP (used for all API calls):"
+          curl -s https://api.ipify.org && echo ""
+          echo ""
+          echo "NOTE: Angel One IP whitelist only applies to ORDER placement."
+          echo "Login, profile, historical data do NOT need IP whitelisting."
+
+      - name: Verify script files exist
+        run: |
+          echo "--- scripts/ directory ---"
+          ls -la scripts/
+          echo ""
+          for f in scripts/angel_api.py scripts/symbol_master.py scripts/test_angel.py; do
+            test -f "$f" && echo "FOUND: $f" || echo "MISSING: $f"
+          done
+
+      - name: Run Angel One API test
+        env:
+          ANGEL_API_KEY:        ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_CODE:    ${{ secrets.ANGEL_CLIENT_CODE }}
+          ANGEL_PASSWORD:       ${{ secrets.ANGEL_PASSWORD }}
+          ANGEL_TOTP_SECRET:    ${{ secrets.ANGEL_TOTP_SECRET }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PYTHONPATH:           ${{ github.workspace }}/scripts
+        run: python scripts/test_angel.py
+
+      - name: All tests passed
+        if: success()
+        run: echo "ALL TESTS PASSED. Ready for scanner build."
+
+      - name: Tests failed — help
+        if: failure()
+        run: |
+          echo "TESTS FAILED. Read the output above carefully."
+          echo ""
+          echo "Most common causes:"
+          echo ""
+          echo "1. ANGEL_PASSWORD = your 4-digit MPIN (trading PIN), NOT login password"
+          echo "   Example: if your trading PIN is 1234, set ANGEL_PASSWORD = 1234"
+          echo ""
+          echo "2. ANGEL_TOTP_SECRET = plain text token from enable-totp page"
+          echo "   Visit: https://smartapi.angelbroking.com/enable-totp"
+          echo "   It looks like: JBSWY3DPEHPK3PXP (16 characters)"
+          echo "   Do NOT paste the QR image — paste the text token below the QR"
+          echo ""
+          echo "3. ANGEL_API_KEY = key from My Profile on smartapi.angelone.in"
