@@ -1,12 +1,11 @@
-# YS TRADING — .github/workflows/test_angel.yml  (FIXED v2)
+# YS TRADING — .github/workflows/test_angel.yml  (FIXED v3)
 #
 # WHAT WAS WRONG:
-#   Old workflow: cd scripts && python test_angel.py
-#   Python couldn't find angel_api.py even though it's in the same folder.
-#   Fix: set PYTHONPATH to point at the scripts/ directory explicitly.
+#    ModuleNotFoundError: No module named 'websocket'
+#    The SmartApi library requires websocket-client to function.
 #
 # HOW TO RUN:
-#   GitHub repo → Actions tab → "Test Angel One API" → Run workflow
+#    GitHub repo → Actions tab → "Test Angel One API" → Run workflow
 
 name: Test Angel One API
 
@@ -34,7 +33,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install smartapi-python pyotp requests logzero --quiet
+        # ADDED websocket-client to the list below
+        run: pip install smartapi-python pyotp requests logzero websocket-client --quiet
 
       - name: Show runner public IP
         run: |
