@@ -1,7 +1,7 @@
 """
-YS TRADING — angel_api.py  (FIXED v3)
-Fixed the 'auth_token' AttributeError that was causing 
-the test script to report a false login failure.
+YS TRADING — angel_api.py  (FIXED v4)
+Fixed the 'feed_token' AttributeError. 
+All tokens are now stored using the names the test script expects.
 """
 
 import os, time, pyotp
@@ -13,14 +13,16 @@ IST = timezone(timedelta(hours=5, minutes=30))
 
 class AngelAPI:
     def __init__(self):
-        self.api_key     = os.environ.get('ANGEL_API_KEY', '').strip()
-        self.client_code = os.environ.get('ANGEL_CLIENT_CODE', '').strip()
-        self.password    = os.environ.get('ANGEL_PASSWORD', '').strip()
-        self.totp_secret = os.environ.get('ANGEL_TOTP_SECRET', '').strip()
-        self._smart      = None
-        self._refresh    = None
-        self._feed_token = None
-        self.auth_token  = None  # Added: placeholder for the JWT token
+        self.api_key      = os.environ.get('ANGEL_API_KEY', '').strip()
+        self.client_code  = os.environ.get('ANGEL_CLIENT_CODE', '').strip()
+        self.password     = os.environ.get('ANGEL_PASSWORD', '').strip()
+        self.totp_secret  = os.environ.get('ANGEL_TOTP_SECRET', '').strip()
+        self._smart       = None
+        
+        # Public attributes expected by the test script
+        self.auth_token    = None 
+        self.refresh_token = None
+        self.feed_token    = None
 
     def _check_config(self):
         missing = []
@@ -47,10 +49,10 @@ class AngelAPI:
             msg = data.get('message', 'Unknown error') if data else 'Empty response'
             raise ConnectionError(f"Angel One login failed: {msg}")
 
-        # FIX: Explicitly store the tokens that the test script expects
-        self.auth_token  = data['data']['jwtToken']
-        self._refresh    = data['data']['refreshToken']
-        self._feed_token = self._smart.getfeedToken()
+        # Store tokens exactly as named in the test script
+        self.auth_token    = data['data']['jwtToken']
+        self.refresh_token = data['data']['refreshToken']
+        self.feed_token    = self._smart.getfeedToken()
 
         print(f"Login OK — client: {self.client_code}")
         return True
