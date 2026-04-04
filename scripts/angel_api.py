@@ -1,7 +1,7 @@
 """
-YS TRADING — angel_api.py  (FIXED v4)
-Fixed the 'feed_token' AttributeError. 
-All tokens are now stored using the names the test script expects.
+YS TRADING — angel_api.py (FIXED v5)
+- Added get_profile()
+- Fixed RateLimiter visibility for test_angel.py
 """
 
 import os, time, pyotp
@@ -9,6 +9,25 @@ from datetime import datetime, timezone, timedelta
 from SmartApi import SmartConnect
 
 IST = timezone(timedelta(hours=5, minutes=30))
+
+# ── Rate Limiter (Moved here so test_angel.py can import it) ───────────
+class RateLimiter:
+    """
+    Angel One allows ~100 historical requests/minute.
+    """
+    def __init__(self, max_per_min=85):
+        self.max_per_min = max_per_min
+        self._calls = []
+
+    def wait(self):
+        now = time.time()
+        self._calls = [t for t in self._calls if now - t < 60]
+        if len(self._calls) >= self.max_per_min:
+            sleep_for = 60 - (now - self._calls[0])
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+            self._calls = [t for t in self._calls if time.time() - t < 60]
+        self._calls.append(time.time())
 
 
 class AngelAPI:
@@ -36,7 +55,6 @@ class AngelAPI:
     def login(self) -> bool:
         """Login using SmartConnect SDK."""
         self._check_config()
-
         try:
             totp = pyotp.TOTP(self.totp_secret).now()
         except Exception as e:
@@ -49,13 +67,18 @@ class AngelAPI:
             msg = data.get('message', 'Unknown error') if data else 'Empty response'
             raise ConnectionError(f"Angel One login failed: {msg}")
 
-        # Store tokens exactly as named in the test script
         self.auth_token    = data['data']['jwtToken']
         self.refresh_token = data['data']['refreshToken']
         self.feed_token    = self._smart.getfeedToken()
 
         print(f"Login OK — client: {self.client_code}")
         return True
+
+    def get_profile(self):
+        """Fetch user profile details (Expected by test_angel.py)"""
+        if not self._smart:
+            return None
+        return self._smart.getProfile(self.refresh_token)
 
     def logout(self):
         try:
