@@ -191,8 +191,10 @@ def build_htf_cache(api: AngelAPI, sm) -> dict:
             pass
 
     print(f"  Building HTF cache ({len(sm.get_nifty500_tokens())} symbols)...")
-    from_dt = (ist_now - timedelta(days=90)).strftime('%Y-%m-%d %09:00')
-    to_dt   = ist_now.strftime('%Y-%m-%d %15:30')
+    
+    # FIXED: Corrected date formatting for Angel One API
+    from_dt = (ist_now - timedelta(days=90)).strftime('%Y-%m-%d 09:00')
+    to_dt   = ist_now.strftime('%Y-%m-%d 15:30')
 
     cache    = {'_date': today}
     limiter  = RateLimiter(max_per_min=80)
