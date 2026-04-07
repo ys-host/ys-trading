@@ -15,9 +15,12 @@ STOP-TODAY LOGIC:
   "Scan Now" button resets stop_today=False and dispatches new job
 """
 
-import os, sys, time, json, threading, concurrent.futures
+import os, sys, time, json, threading, concurrent.futures, socket
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+# --- PERFORMANCE FIX: Prevent 30-min Silent Hangs ---
+socket.setdefaulttimeout(45) 
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from angel_api import AngelAPI, RateLimiter
@@ -25,7 +28,7 @@ from symbol_master import SymbolMaster
 
 IST            = timezone(timedelta(hours=5, minutes=30))
 SCAN_INTERVAL  = 60      # seconds between scans
-MAX_WORKERS    = 20      # parallel API threads
+MAX_WORKERS    = 5       # REDUCED from 20 to 5 to prevent API rate-limit silent hangs
 HTF_CACHE_FILE = Path('/tmp/ys_htf_cache.json')
 
 # Supabase REST
@@ -51,9 +54,9 @@ def supa_insert(table, rows):
                      headers={**_headers(), 'Prefer': 'return=minimal'},
                      timeout=15)
         if r.status_code not in (200, 201):
-            print(f"  [DB] Insert error {r.status_code}: {r.text[:120]}")
+            print(f"  [DB] Insert error {r.status_code}: {r.text[:120]}", flush=True)
     except Exception as e:
-        print(f"  [DB] Insert failed: {e}")
+        print(f"  [DB] Insert failed: {e}", flush=True)
 
 def supa_upsert(table, rows, on_conflict):
     if not rows or not SUPA_KEY:
@@ -65,9 +68,9 @@ def supa_upsert(table, rows, on_conflict):
             headers={**_headers(), 'Prefer': 'resolution=merge-duplicates,return=minimal'},
             timeout=15)
         if r.status_code not in (200, 201):
-            print(f"  [DB] Upsert error {r.status_code}: {r.text[:120]}")
+            print(f"  [DB] Upsert error {r.status_code}: {r.text[:120]}", flush=True)
     except Exception as e:
-        print(f"  [DB] Upsert failed: {e}")
+        print(f"  [DB] Upsert failed: {e}", flush=True)
 
 def supa_select(table, params=''):
     if not SUPA_KEY:
@@ -90,9 +93,9 @@ def supa_patch(table, match_param, data):
             headers={**_headers(), 'Prefer': 'return=minimal'},
             timeout=15)
         if r.status_code not in (200, 204):
-            print(f"  [DB] Patch error {r.status_code}: {r.text[:120]}")
+            print(f"  [DB] Patch error {r.status_code}: {r.text[:120]}", flush=True)
     except Exception as e:
-        print(f"  [DB] Patch failed: {e}")
+        print(f"  [DB] Patch failed: {e}", flush=True)
 
 
 # ── Scanner Control ───────────────────────────────────────────────
@@ -185,12 +188,12 @@ def build_htf_cache(api: AngelAPI, sm) -> dict:
         try:
             cache = json.loads(HTF_CACHE_FILE.read_text())
             if cache.get('_date') == today:
-                print(f"  HTF cache loaded: {len(cache)-1} symbols")
+                print(f"  HTF cache loaded: {len(cache)-1} symbols", flush=True)
                 return cache
         except Exception:
             pass
 
-    print(f"  Building HTF cache ({len(sm.get_nifty500_tokens())} symbols)...")
+    print(f"  Building HTF cache ({len(sm.get_nifty500_tokens())} symbols)...", flush=True)
     
     # FIXED: Corrected date formatting for Angel One API
     from_dt = (ist_now - timedelta(days=90)).strftime('%Y-%m-%d 09:00')
@@ -203,24 +206,30 @@ def build_htf_cache(api: AngelAPI, sm) -> dict:
     def fetch_one(sym_token):
         sym, token = sym_token
         limiter.wait()
-        candles = api.get_candles('NSE', token, 'ONE_DAY', from_dt, to_dt)
-        if not candles or len(candles) < 21:
+        try:
+            # FIX: Added progress print with flush=True to avoid 30min silent log
+            print(f"  [HTF] Fetching {sym}...", flush=True)
+            candles = api.get_candles('NSE', token, 'ONE_DAY', from_dt, to_dt)
+            if not candles or len(candles) < 21:
+                return sym, None
+            closes = [float(c[4]) for c in candles]
+            ema20  = _ema(closes, 20)
+            sma50  = _sma(closes, 50) if len(closes) >= 50 else None
+            rsi14  = _rsi(closes, 14)
+            last   = closes[-1]
+            ago20  = closes[-21] if len(closes) >= 21 else last
+            return sym, {
+                'ema20':      round(ema20, 2)  if ema20 else None,
+                'sma50':      round(sma50, 2)  if sma50 else None,
+                'rsi14':      round(rsi14, 1)  if rsi14 else None,
+                'last_close': round(last, 2),
+                'above_ema20': last > ema20    if ema20 else None,
+                'above_sma50': last > sma50    if sma50 else None,
+                'trend_up':   last > ago20,
+            }
+        except Exception as e:
+            print(f"  [HTF] Error on {sym}: {e}", flush=True)
             return sym, None
-        closes = [float(c[4]) for c in candles]
-        ema20  = _ema(closes, 20)
-        sma50  = _sma(closes, 50) if len(closes) >= 50 else None
-        rsi14  = _rsi(closes, 14)
-        last   = closes[-1]
-        ago20  = closes[-21] if len(closes) >= 21 else last
-        return sym, {
-            'ema20':      round(ema20, 2)  if ema20 else None,
-            'sma50':      round(sma50, 2)  if sma50 else None,
-            'rsi14':      round(rsi14, 1)  if rsi14 else None,
-            'last_close': round(last, 2),
-            'above_ema20': last > ema20    if ema20 else None,
-            'above_sma50': last > sma50    if sma50 else None,
-            'trend_up':   last > ago20,
-        }
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
         for sym, data in ex.map(fetch_one, sm.get_nifty500_tokens()):
@@ -243,7 +252,7 @@ def build_htf_cache(api: AngelAPI, sm) -> dict:
     for i in range(0, len(db_rows), 200):
         supa_upsert('mtf_cache', db_rows[i:i+200], 'cache_date,symbol')
 
-    print(f"  HTF cache built: {len(cache)-1} symbols")
+    print(f"  HTF cache built: {len(cache)-1} symbols", flush=True)
     return cache
 
 
@@ -272,82 +281,85 @@ def scan_symbol(api, sym, token, htf_cache, scan_time_str, today_str):
     from_dt = f'{today_str} 09:15'
     to_dt   = ist_now.strftime('%Y-%m-%d %H:%M')
 
-    candles = api.get_candles('NSE', token, 'ONE_MINUTE', from_dt, to_dt)
-    if not candles or len(candles) < 5:
+    try:
+        candles = api.get_candles('NSE', token, 'ONE_MINUTE', from_dt, to_dt)
+        if not candles or len(candles) < 5:
+            return []
+
+        opens   = [float(c[1]) for c in candles]
+        highs   = [float(c[2]) for c in candles]
+        lows    = [float(c[3]) for c in candles]
+        closes  = [float(c[4]) for c in candles]
+        volumes = [int(c[5])   for c in candles]
+
+        orb_high  = highs[0]
+        orb_low   = lows[0]
+        cur_open  = opens[-1]
+        cur_high  = highs[-1]
+        cur_low   = lows[-1]
+        cur_close = closes[-1]
+        cur_vol   = volumes[-1]
+        prev_high = highs[-2]  if len(highs) >= 2  else highs[-1]
+        prev_low  = lows[-2]   if len(lows)  >= 2  else lows[-1]
+        prev_close = opens[0]
+
+        vol_sma   = _vol_sma(volumes[:-1], 20) or cur_vol
+        vol_ratio = cur_vol / vol_sma if vol_sma > 0 else 0
+        c_range   = (cur_high - cur_low) / cur_close if cur_close > 0 else 0
+        gap_pct   = (cur_open - prev_close) / prev_close if prev_close > 0 else 0
+        chg_pct   = (cur_close - prev_close) / prev_close * 100 if prev_close > 0 else 0
+
+        htf         = htf_cache.get(sym, {})
+        above_ema20 = htf.get('above_ema20')
+        above_sma50 = htf.get('above_sma50')
+        trend_up    = htf.get('trend_up')
+
+        base = {
+            'symbol': sym, 'token': token,
+            'sector': SECTOR_MAP.get(sym, 'Others'),
+            'close_price': round(cur_close, 2),
+            'change_pct':  round(chg_pct, 4),
+            'volume':      cur_vol,
+            'vol_sma20':   int(vol_sma),
+            'vol_ratio':   round(vol_ratio, 2),
+            'orb_high':    round(orb_high, 2),
+            'orb_low':     round(orb_low, 2),
+            'candle_range': round(c_range, 4),
+            'trade_date':  today_str,
+            'scan_time':   scan_time_str,
+        }
+
+        matches = []
+
+        # ── Scanner 1: Bullish (BL / FS) ──────────────────────────────
+        if (abs(gap_pct) <= 0.015
+                and cur_close > cur_open
+                and cur_close > prev_high
+                and 2.5 <= vol_ratio <= 8.0
+                and c_range <= 0.025
+                and cur_close < prev_close * 1.05
+                and cur_close >= 150
+                and (above_ema20 is None or above_ema20)
+                and (above_sma50 is None or above_sma50)
+                and (trend_up    is None or trend_up)):
+            matches.append({**base, 'strategy_code': 'ORB', 'scanner': 1, 'tag': 'BL'})
+
+        # ── Scanner 2: Bearish (BD / FL) ──────────────────────────────
+        if (gap_pct <= 0.005 and gap_pct >= -0.030
+                and cur_close < cur_open
+                and cur_close < prev_low
+                and 2.5 <= vol_ratio <= 8.0
+                and c_range <= 0.025
+                and cur_close > prev_close * 0.94
+                and cur_close >= 150
+                and (above_ema20 is None or not above_ema20)
+                and (above_sma50 is None or not above_sma50)
+                and (trend_up    is None or not trend_up)):
+            matches.append({**base, 'strategy_code': 'ORB', 'scanner': 2, 'tag': 'BD'})
+
+        return matches
+    except Exception:
         return []
-
-    opens   = [float(c[1]) for c in candles]
-    highs   = [float(c[2]) for c in candles]
-    lows    = [float(c[3]) for c in candles]
-    closes  = [float(c[4]) for c in candles]
-    volumes = [int(c[5])   for c in candles]
-
-    orb_high  = highs[0]
-    orb_low   = lows[0]
-    cur_open  = opens[-1]
-    cur_high  = highs[-1]
-    cur_low   = lows[-1]
-    cur_close = closes[-1]
-    cur_vol   = volumes[-1]
-    prev_high = highs[-2]  if len(highs) >= 2  else highs[-1]
-    prev_low  = lows[-2]   if len(lows)  >= 2  else lows[-1]
-    prev_close = opens[0]
-
-    vol_sma   = _vol_sma(volumes[:-1], 20) or cur_vol
-    vol_ratio = cur_vol / vol_sma if vol_sma > 0 else 0
-    c_range   = (cur_high - cur_low) / cur_close if cur_close > 0 else 0
-    gap_pct   = (cur_open - prev_close) / prev_close if prev_close > 0 else 0
-    chg_pct   = (cur_close - prev_close) / prev_close * 100 if prev_close > 0 else 0
-
-    htf         = htf_cache.get(sym, {})
-    above_ema20 = htf.get('above_ema20')
-    above_sma50 = htf.get('above_sma50')
-    trend_up    = htf.get('trend_up')
-
-    base = {
-        'symbol': sym, 'token': token,
-        'sector': SECTOR_MAP.get(sym, 'Others'),
-        'close_price': round(cur_close, 2),
-        'change_pct':  round(chg_pct, 4),
-        'volume':      cur_vol,
-        'vol_sma20':   int(vol_sma),
-        'vol_ratio':   round(vol_ratio, 2),
-        'orb_high':    round(orb_high, 2),
-        'orb_low':     round(orb_low, 2),
-        'candle_range': round(c_range, 4),
-        'trade_date':  today_str,
-        'scan_time':   scan_time_str,
-    }
-
-    matches = []
-
-    # ── Scanner 1: Bullish (BL / FS) ──────────────────────────────
-    if (abs(gap_pct) <= 0.015
-            and cur_close > cur_open
-            and cur_close > prev_high
-            and 2.5 <= vol_ratio <= 8.0
-            and c_range <= 0.025
-            and cur_close < prev_close * 1.05
-            and cur_close >= 150
-            and (above_ema20 is None or above_ema20)
-            and (above_sma50 is None or above_sma50)
-            and (trend_up    is None or trend_up)):
-        matches.append({**base, 'strategy_code': 'ORB', 'scanner': 1, 'tag': 'BL'})
-
-    # ── Scanner 2: Bearish (BD / FL) ──────────────────────────────
-    if (gap_pct <= 0.005 and gap_pct >= -0.030
-            and cur_close < cur_open
-            and cur_close < prev_low
-            and 2.5 <= vol_ratio <= 8.0
-            and c_range <= 0.025
-            and cur_close > prev_close * 0.94
-            and cur_close >= 150
-            and (above_ema20 is None or not above_ema20)
-            and (above_sma50 is None or not above_sma50)
-            and (trend_up    is None or not trend_up)):
-        matches.append({**base, 'strategy_code': 'ORB', 'scanner': 2, 'tag': 'BD'})
-
-    return matches
 
 
 # ── Streak calculation ────────────────────────────────────────────
@@ -390,7 +402,7 @@ def run_scan(api, sm, htf_cache, scan_num, today_str, scan_time):
         supa_insert('scan_runs', all_matches)
         rebuild_daily_picks(today_str)
 
-    print(f"  Scan {scan_num} ({scan_time}): {len(all_matches)} matches")
+    print(f"  Scan {scan_num} ({scan_time}): {len(all_matches)} matches", flush=True)
     return len(all_matches)
 
 
@@ -442,14 +454,14 @@ def rebuild_daily_picks(today_str):
 # ── End of Day Reset ──────────────────────────────────────────────
 def end_of_day_reset(today_str):
     """Rule 5: At 15:30 reset all flags, clean exit."""
-    print("\n[EOD] 15:30 — End of day reset")
+    print("\n[EOD] 15:30 — End of day reset", flush=True)
     update_control(today_str, {
         'is_enabled':  False,
         'stop_today':  True,
         'stop_reason': 'end_of_day',
         'stopped_at':  datetime.now(IST).isoformat(),
     })
-    print("[EOD] Flags reset. Clean exit.")
+    print("[EOD] Flags reset. Clean exit.", flush=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────
@@ -460,50 +472,50 @@ def main():
     today_str = ist_now.strftime('%Y-%m-%d')
     mins_now  = ist_now.hour * 60 + ist_now.minute
 
-    print(f"\n{'='*55}")
-    print(f"  YS Scanner v2 — {ist_now.strftime('%Y-%m-%d %H:%M:%S IST')}")
-    print(f"{'='*55}")
+    print(f"\n{'='*55}", flush=True)
+    print(f"  YS Scanner v2 — {ist_now.strftime('%Y-%m-%d %H:%M:%S IST')}", flush=True)
+    print(f"{'='*55}", flush=True)
 
     if not force and ist_now.weekday() >= 5:
-        print("Weekend — no scan.")
+        print("Weekend — no scan.", flush=True)
         return
 
     if not force and mins_now > 15 * 60 + 30:
-        print("After market close — no scan.")
+        print("After market close — no scan.", flush=True)
         return
 
     # Login
-    print("\n[1] Connecting to Angel One...")
+    print("\n[1] Connecting to Angel One...", flush=True)
     api = AngelAPI()
     try:
         api.login()
     except Exception as e:
-        print(f"Login failed: {e}")
+        print(f"Login failed: {e}", flush=True)
         sys.exit(1)
 
     sm = SymbolMaster()
 
     # HTF cache
-    print("\n[2] Loading HTF data...")
+    print("\n[2] Loading HTF data...", flush=True)
     htf_cache = build_htf_cache(api, sm)
 
     # Initialize scanner control for today
     control = get_control(today_str)
     print(f"\n[3] Scanner control: is_enabled={control.get('is_enabled')} | "
           f"stop_today={control.get('stop_today')} | "
-          f"is_user_present={control.get('is_user_present')}")
+          f"is_user_present={control.get('is_user_present')}", flush=True)
 
     # Check if already stopped
     if control.get('stop_today'):
-        print("Stop-Today flag is set. Exiting without scanning.")
-        print("To resume: click 'Scan Now' from dashboard (resets stop flag).")
+        print("Stop-Today flag is set. Exiting without scanning.", flush=True)
+        print("To resume: click 'Scan Now' from dashboard (resets stop flag).", flush=True)
         api.logout()
         return
 
     # Scan loop
     scan_num      = 0
     warned_11_15  = False
-    print(f"\n[4] Starting 1-min scan loop...\n")
+    print(f"\n[4] Starting 1-min scan loop...\n", flush=True)
 
     try:
         while True:
@@ -522,14 +534,14 @@ def main():
 
             # ── Stop-Today check ──────────────────────────────────
             if control.get('stop_today'):
-                print(f"\n[STOP] Stop-Today flag detected at {scan_time}.")
-                print("       Scanner stopped. Use 'Scan Now' to resume.")
+                print(f"\n[STOP] Stop-Today flag detected at {scan_time}.", flush=True)
+                print("       Scanner stopped. Use 'Scan Now' to resume.", flush=True)
                 break
 
             # ── Rule 4: Presence gate at 11:30 ───────────────────
             if not force and not check_presence_gate(control, ist_now):
-                print(f"\n[AUTO-SHUTDOWN] 11:30 reached. User not confirmed present.")
-                print("                Setting stop_today=True.")
+                print(f"\n[AUTO-SHUTDOWN] 11:30 reached. User not confirmed present.", flush=True)
+                print("                Setting stop_today=True.", flush=True)
                 update_control(today_str, {
                     'stop_today':  True,
                     'stop_reason': 'auto_absence',
@@ -540,14 +552,14 @@ def main():
             # ── Countdown warning at 11:15 ────────────────────────
             if not warned_11_15 and 11 * 60 + 15 <= mins < 11 * 60 + 30:
                 if not control.get('is_user_present'):
-                    print(f"\n[WARNING] 11:15 AM — Auto-shutdown in 15 min if presence not confirmed.")
-                    print("          Click 'I\'m Present' in dashboard to keep scanner running.")
+                    print(f"\n[WARNING] 11:15 AM — Auto-shutdown in 15 min if presence not confirmed.", flush=True)
+                    print("          Click 'I\'m Present' in dashboard to keep scanner running.", flush=True)
                     update_control(today_str, {'shutdown_warned': True})
                     warned_11_15 = True
 
             # ── Outside scan window ───────────────────────────────
             if not force and not (9 * 60 + 15 <= mins <= 15 * 60 + 25):
-                print(f"  Outside scan window ({scan_time}). Waiting...")
+                print(f"  Outside scan window ({scan_time}). Waiting...", flush=True)
                 time.sleep(30)
                 continue
 
@@ -559,14 +571,14 @@ def main():
 
             elapsed    = time.time() - t0
             sleep_for  = max(0, SCAN_INTERVAL - elapsed)
-            print(f"  Scan done in {elapsed:.1f}s. Next in {sleep_for:.0f}s.")
+            print(f"  Scan done in {elapsed:.1f}s. Next in {sleep_for:.0f}s.", flush=True)
             time.sleep(sleep_for)
 
     except KeyboardInterrupt:
-        print("\n[STOP] Keyboard interrupt.")
+        print("\n[STOP] Keyboard interrupt.", flush=True)
     finally:
         api.logout()
-        print(f"[EXIT] Logged out. Total scans: {scan_num}")
+        print(f"[EXIT] Logged out. Total scans: {scan_num}", flush=True)
 
 
 if __name__ == '__main__':
