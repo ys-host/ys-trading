@@ -1,31 +1,11 @@
-# YS TRADING — .github/workflows/angel_scanner.yml
-#
-# Main scanner workflow.
-# Runs every 5 minutes during market hours.
-# INSIDE the job: Python loops every 60 seconds for true 1-minute scanning.
-#
-# SCHEDULE (IST = UTC+5:30):
-#   9:00 AM IST  = 3:30 UTC  → warm up + build HTF cache
-#   9:15 AM IST  = 3:45 UTC  → scanning starts
-#   3:30 PM IST  = 10:00 UTC → market close
-#   3:35 PM IST  = 10:05 UTC → cleanup run
-#
-# GitHub Actions min schedule = 5 min.
-# Workaround: job starts every 5 min, Python loops 1 min inside.
-# This gives effective 1-min scanning.
-#
-# HOW TO TRIGGER MANUALLY (from dashboard "Scan Now" button):
-#   POST https://api.github.com/repos/ys-host/ys-scan/actions/workflows/angel_scanner.yml/dispatches
-#   with body: {"ref": "main"}
-#   Authorization: Bearer YOUR_GITHUB_PAT
+# YS TRADING — angel_scanner.yml
+# Main scanner workflow with added safety gates.
 
 name: YS Market Scanner
 
 on:
-  workflow_dispatch:  # manual trigger (from dashboard or GitHub UI)
+  workflow_dispatch:
   schedule:
-    # Every 5 minutes from 3:30 UTC to 10:05 UTC (Mon-Fri)
-    # = 9:00 AM to 3:35 PM IST
     - cron: '30,35,40,45,50,55 3 * * 1-5'
     - cron: '0,5,10,15,20,25,30,35,40,45,50,55 4-9 * * 1-5'
     - cron: '0,5 10 * * 1-5'
@@ -33,7 +13,8 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30   # max 30 min per job run
+    # MENTOR NOTE: Safety timeout to prevent wasting GitHub Action minutes if the script hangs.
+    timeout-minutes: 30 
 
     steps:
       - name: Checkout
@@ -52,24 +33,26 @@ jobs:
         run: |
           python3 -c "
           from datetime import datetime, timezone, timedelta
+          import sys
           IST = timezone(timedelta(hours=5, minutes=30))
           now = datetime.now(IST)
           mins = now.hour * 60 + now.minute
+          # Market window: 9:15 AM to 3:30 PM
           market_open = (9 * 60 + 15) <= mins <= (15 * 60 + 30)
           is_weekday  = now.weekday() < 5
-          print(f'IST: {now.strftime(\"%H:%M %A\")}')
-          print(f'Market open: {market_open}')
-          print(f'Weekday: {is_weekday}')
+          
+          # MENTOR NOTE: We write to a file to ensure the 'if' condition below reads a clean value.
           if market_open and is_weekday:
               print('SCAN=true')
-              open('scan_flag.txt','w').write('true')
+              with open('scan_flag.txt','w') as f: f.write('true')
           else:
-              print('SCAN=false (outside market hours)')
-              open('scan_flag.txt','w').write('false')
+              print('SCAN=false')
+              with open('scan_flag.txt','w') as f: f.write('false')
           "
           echo "scan_flag=$(cat scan_flag.txt)" >> $GITHUB_OUTPUT
 
-      - name: Run scanner (market hours only)
+      - name: Run scanner
+        # MENTOR NOTE: Runs only if market is open OR if you manually click 'Scan Now'.
         if: steps.market_check.outputs.scan_flag == 'true' || github.event_name == 'workflow_dispatch'
         env:
           ANGEL_API_KEY:        ${{ secrets.ANGEL_API_KEY }}
@@ -79,9 +62,4 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           PYTHONPATH:           ${{ github.workspace }}/scripts
-        run: |
-          python scripts/scanner_core.py
-
-      - name: Skip message
-        if: steps.market_check.outputs.scan_flag == 'false' && github.event_name != 'workflow_dispatch'
-        run: echo "Market closed — skipped scan"
+        run: python scripts/scanner_core.py
