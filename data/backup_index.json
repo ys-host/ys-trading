@@ -1,6 +1,16 @@
 {
   "backups": [
     {
+      "date": "2026-07-17",
+      "is_trading_day": true,
+      "scan_runs": 0,
+      "unique_stocks_s1": 0,
+      "unique_stocks_s2": 0,
+      "trades_today": 0,
+      "day_pnl": 0,
+      "backed_up_at": "2026-07-17T17:20:04.729754+05:30"
+    },
+    {
       "date": "2026-07-16",
       "is_trading_day": true,
       "scan_runs": 0,
@@ -791,6 +801,6 @@
       "backed_up_at": "2026-03-30T20:21:45.243879+05:30"
     }
   ],
-  "last_updated": "2026-07-16T17:28:10.798381+05:30",
-  "total_backups": 79
+  "last_updated": "2026-07-17T17:20:04.729779+05:30",
+  "total_backups": 80
 }
